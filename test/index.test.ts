@@ -1,7 +1,9 @@
-import { dummy } from "@app"
+import { BooleanADT } from "@app"
 
-describe("Dummy Suite", () => {
-  it("dummy test", () => {
-    expect(dummy).toEqual("dummy")
+describe("BooleanADT", () => {
+  it("Invert of True is False", () => {
+    expect(BooleanADT.renderToString(BooleanADT.invert(BooleanADT.makeTrue()))).toEqual(
+      "Boolean is False"
+    )
   })
 })
