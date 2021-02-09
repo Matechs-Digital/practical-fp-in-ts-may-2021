@@ -30,6 +30,7 @@ module.exports = {
 
     // eslint built-in rules, sorted alphabetically
     "no-fallthrough": "off",
+    "no-inner-declarations": "off",
     "no-irregular-whitespace": "off",
     "object-shorthand": "error",
     "prefer-destructuring": "off",
