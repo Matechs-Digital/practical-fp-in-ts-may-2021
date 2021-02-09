@@ -243,6 +243,18 @@ export namespace EIO {
     })
   }
 
+  export interface CatchAll<E, A> {
+    readonly _tag: "CatchAll"
+    readonly use: <X>(go: <E1>(fa: IO<E1, A>, f: (a: E1) => IO<E, A>) => X) => X
+  }
+
+  export function catchAll<E, E2, B>(f: (a: E) => IO<E2, B>) {
+    return <A>(self: IO<E, A>): IO<E2, A | B> => ({
+      _tag: "CatchAll",
+      use: (go) => go(self, f)
+    })
+  }
+
   export interface Suspend<E, A> {
     readonly _tag: "Suspend"
     readonly use: <X>(go: (f: () => IO<E, A>) => X) => X
@@ -255,7 +267,13 @@ export namespace EIO {
     }
   }
 
-  export type IO<E, A> = Succeed<A> | Map<E, A> | Chain<E, A> | Suspend<E, A> | Fail<E>
+  export type IO<E, A> =
+    | Succeed<A>
+    | Map<E, A>
+    | Chain<E, A>
+    | Suspend<E, A>
+    | Fail<E>
+    | CatchAll<E, A>
 
   export function run<E, A>(self: IO<E, A>): E.Either<E, A> {
     switch (self._tag) {
@@ -288,12 +306,27 @@ export namespace EIO {
       case "Suspend": {
         return self.use((f) => run(f()))
       }
+      case "CatchAll": {
+        return self.use((fa, f) => {
+          const res = run(fa)
+          if (res._tag === "Left") {
+            return run(f(res.left))
+          } else {
+            return E.right(res.right)
+          }
+        })
+      }
     }
   }
 
   interface ApplyFrame {
     readonly _tag: "ApplyFrame"
     readonly apply: (a: unknown) => IO<unknown, unknown>
+  }
+  interface CatchFrame {
+    readonly _tag: "CatchFrame"
+    readonly apply: (a: unknown) => IO<unknown, unknown>
+    readonly catchAll: (e: unknown) => IO<unknown, unknown>
   }
 
   function applyFrame(f: (a: unknown) => IO<unknown, unknown>): StackFrame {
@@ -302,13 +335,21 @@ export namespace EIO {
       apply: f
     }
   }
+  function catchFrame(f: (e: unknown) => IO<unknown, unknown>): StackFrame {
+    return {
+      _tag: "CatchFrame",
+      apply: succeed,
+      catchAll: f
+    }
+  }
 
-  type StackFrame = ApplyFrame
+  type StackFrame = ApplyFrame | CatchFrame
 
   export function runSafe<E, A>(self: IO<E, A>): E.Either<E, A> {
     // eslint-disable-next-line prefer-const
     let maybeCurrent: IO<unknown, unknown> | undefined = self
     let value: unknown | undefined = undefined
+    let errored = false
     const stack: Array<StackFrame> = []
 
     while (maybeCurrent) {
@@ -349,8 +390,31 @@ export namespace EIO {
           break
         }
         case "Fail": {
-          // @ts-expect-error
-          return current.use((e) => E.left(e))
+          current.use((e) => {
+            errored = true
+            value = e
+            maybeCurrent = undefined
+          })
+          while (stack.length > 0) {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            const frame = stack.pop()!
+            if (frame._tag === "CatchFrame") {
+              maybeCurrent = frame.catchAll(value)
+              errored = false
+              break
+            }
+          }
+          break
+        }
+        case "CatchAll": {
+          current.use((fa, f) => {
+            stack.push(
+              // @ts-expect-error
+              catchFrame(f)
+            )
+            maybeCurrent = fa
+          })
+          break
         }
       }
 
@@ -362,6 +426,6 @@ export namespace EIO {
     }
 
     // @ts-expect-error
-    return E.right(value)
+    return errored ? E.left(value) : E.right(value)
   }
 }

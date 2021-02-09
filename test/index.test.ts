@@ -72,4 +72,16 @@ describe("SimpleIO", () => {
     expect(pipe(program, EIO.run)).toEqual(E.left("error: result is 3"))
     expect(pipe(program, EIO.runSafe)).toEqual(E.left("error: result is 3"))
   })
+  it("Should use map, chain, suspend, succeed, fail and catchAll", () => {
+    const program = pipe(
+      EIO.suspend(() => EIO.succeed(0)),
+      EIO.map(Pipeable.add(1)),
+      EIO.map(Pipeable.add(2)),
+      EIO.chain((n) => EIO.succeed(Pipeable.renderToString(n))),
+      EIO.chain((s) => EIO.fail(`error: ${s}`)),
+      EIO.catchAll((e) => EIO.succeed(e))
+    )
+    expect(pipe(program, EIO.run)).toEqual(E.right("error: result is 3"))
+    expect(pipe(program, EIO.runSafe)).toEqual(E.right("error: result is 3"))
+  })
 })
