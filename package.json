@@ -32,7 +32,7 @@
     "yarn-deduplicate": "^3.1.0"
   },
   "dependencies": {
-    "@effect-ts/core": "^0.14.6",
+    "@effect-ts/core": "^0.14.10",
     "@effect-ts/node": "^0.5.0",
     "@effect-ts/tracing-utils": "^0.3.0"
   }
