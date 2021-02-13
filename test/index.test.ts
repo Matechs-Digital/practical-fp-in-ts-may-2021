@@ -61,6 +61,9 @@ describe("SimpleIO", () => {
     expect(pipe(program, SimpleIO.run)).toEqual("result is 3")
     expect(pipe(program, SimpleIO.runSafe)).toEqual("result is 3")
   })
+})
+
+describe("EIO", () => {
   it("Should use map, chain, suspend, succeed and fail", () => {
     const program = pipe(
       EIO.suspend(() => EIO.succeed(0)),
@@ -84,6 +87,9 @@ describe("SimpleIO", () => {
     expect(pipe(program, EIO.run)).toEqual(E.right("error: result is 3"))
     expect(pipe(program, EIO.runSafe)).toEqual(E.right("error: result is 3"))
   })
+})
+
+describe("MiniEffect", () => {
   it("Should use map, chain, suspend, succeed, fail and catchAll, access", () => {
     const program = pipe(
       MiniEffect.suspend(() =>
