@@ -1,4 +1,5 @@
 import * as E from "@effect-ts/core/Either"
+import { pipe } from "@effect-ts/system/Function"
 
 export namespace BooleanADT {
   export interface True {
@@ -479,16 +480,59 @@ export namespace MiniEffect {
     })
   }
 
-  export interface CatchAll<R, E, A> {
-    readonly _tag: "CatchAll"
-    readonly use: <X>(go: <E1>(fa: IO<R, E1, A>, f: (a: E1) => IO<R, E, A>) => X) => X
+  export interface Fold<R, E, A> {
+    readonly _tag: "Fold"
+    readonly use: <X>(
+      go: <E1, A1>(
+        fa: IO<R, E1, A1>,
+        onError: (a: E1) => IO<R, E, A>,
+        onSuccess: (a: A1) => IO<R, E, A>
+      ) => X
+    ) => X
   }
 
   export function catchAll<E, R2, E2, B>(f: (a: E) => IO<R2, E2, B>) {
     return <R, A>(self: IO<R, E, A>): IO<R & R2, E2, A | B> => ({
-      _tag: "CatchAll",
-      use: (go) => go(self, f)
+      _tag: "Fold",
+      use: (go) => go(self, f, succeed)
     })
+  }
+
+  export function fold<E, R2, E2, B, A, R3, E3, C>(
+    onError: (a: E) => IO<R2, E2, B>,
+    onSuccess: (a: A) => IO<R3, E3, C>
+  ) {
+    return <R>(self: IO<R, E, A>): IO<R & R2 & R3, E2 | E3, B | C> => ({
+      _tag: "Fold",
+      use: (go) => go(self, onError, onSuccess)
+    })
+  }
+
+  export function bracket<R1, E1, A1, A, R2, E2, A2, E>(
+    use: (a: A) => IO<R1, E1, A1>,
+    release: (exit: E.Either<E | E1, A1>) => IO<R2, E2, A2>
+  ) {
+    return <R>(acquire: IO<R, E, A>): IO<R & R1 & R2, E | E1 | E2, A1> =>
+      pipe(
+        acquire,
+        chain((a) =>
+          pipe(
+            use(a),
+            catchAll((e1) =>
+              pipe(
+                release(E.left(e1)),
+                chain(() => fail(e1))
+              )
+            ),
+            chain((a1) =>
+              pipe(
+                release(E.right(a1)),
+                map(() => a1)
+              )
+            )
+          )
+        )
+      )
   }
 
   export interface Suspend<R, E, A> {
@@ -536,13 +580,19 @@ export namespace MiniEffect {
       contramapEnv((k: K) => ({ ...r, ...k }))(io)
   }
 
+  export function effectTotal<A>(f: () => A) {
+    return suspend(() => {
+      return succeed(f())
+    })
+  }
+
   export type IO<R, E, A> =
     | Succeed<A>
     | Map<R, E, A>
     | Chain<R, E, A>
     | Suspend<R, E, A>
     | Fail<E>
-    | CatchAll<R, E, A>
+    | Fold<R, E, A>
     | Access<R, E, A>
     | Provide<R, E, A>
 
@@ -581,13 +631,13 @@ export namespace MiniEffect {
       case "Suspend": {
         return self.use((f) => runInner(f(), r))
       }
-      case "CatchAll": {
-        return self.use((fa, f) => {
+      case "Fold": {
+        return self.use((fa, onError, onSuccess) => {
           const res = runInner(fa, r)
           if (res._tag === "Left") {
-            return runInner(f(res.left), r)
+            return runInner(onError(res.left), r)
           } else {
-            return E.right(res.right)
+            return runInner(onSuccess(res.right), r)
           }
         })
       }
@@ -617,11 +667,14 @@ export namespace MiniEffect {
       apply: f
     }
   }
-  function catchFrame(f: (e: unknown) => IO<unknown, unknown, unknown>): StackFrame {
+  function catchFrame(
+    onError: (e: unknown) => IO<unknown, unknown, unknown>,
+    onSuccess: (e: unknown) => IO<unknown, unknown, unknown>
+  ): StackFrame {
     return {
       _tag: "CatchFrame",
-      apply: succeed,
-      catchAll: f
+      apply: onSuccess,
+      catchAll: onError
     }
   }
 
@@ -630,8 +683,8 @@ export namespace MiniEffect {
   export function runSafe<E, A>(self: IO<unknown, E, A>): E.Either<E, A> {
     let maybeCurrent: IO<any, any, any> | undefined = self
     let value: unknown | undefined = undefined
-    let env: unknown = {}
     let errored = false
+    const environments: Array<unknown> = [{}]
     const stack: Array<StackFrame> = []
 
     while (maybeCurrent) {
@@ -688,11 +741,11 @@ export namespace MiniEffect {
           }
           break
         }
-        case "CatchAll": {
-          current.use((fa, f) => {
+        case "Fold": {
+          current.use((fa, onError, onSuccess) => {
             stack.push(
               // @ts-expect-error
-              catchFrame(f)
+              catchFrame(onError, onSuccess)
             )
             maybeCurrent = fa
           })
@@ -700,14 +753,24 @@ export namespace MiniEffect {
         }
         case "Access": {
           current.use((f) => {
-            maybeCurrent = f(env)
+            maybeCurrent = f(environments[environments.length - 1])
           })
           break
         }
         case "Provide": {
           current.use((f, io) => {
-            maybeCurrent = io
-            env = f(env)
+            maybeCurrent = pipe(
+              effectTotal(() => {
+                environments.push(f(environments[environments.length - 1]))
+              }),
+              bracket(
+                () => io,
+                () =>
+                  effectTotal(() => {
+                    environments.pop()
+                  })
+              )
+            )
           })
           break
         }
