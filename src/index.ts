@@ -429,3 +429,305 @@ export namespace EIO {
     return errored ? E.left(value) : E.right(value)
   }
 }
+
+export namespace MiniEffect {
+  export interface Succeed<A> {
+    readonly _tag: "Succeed"
+    readonly use: <X>(go: (_: A) => X) => X
+  }
+
+  export function succeed<A>(a: A): IO<unknown, never, A> {
+    return {
+      _tag: "Succeed",
+      use: (go) => go(a)
+    }
+  }
+
+  export interface Fail<E> {
+    readonly _tag: "Fail"
+    readonly use: <X>(go: (_: E) => X) => X
+  }
+
+  export function fail<E>(e: E): IO<unknown, E, never> {
+    return {
+      _tag: "Fail",
+      use: (go) => go(e)
+    }
+  }
+
+  export interface Map<R, E, A> {
+    readonly _tag: "Map"
+    readonly use: <X>(go: <B>(fa: IO<R, E, B>, f: (a: B) => A) => X) => X
+  }
+
+  export function map<A, B>(f: (a: A) => B) {
+    return <R, E>(self: IO<R, E, A>): IO<R, E, B> => ({
+      _tag: "Map",
+      use: (go) => go(self, f)
+    })
+  }
+
+  export interface Chain<R, E, A> {
+    readonly _tag: "Chain"
+    readonly use: <X>(go: <B>(fa: IO<R, E, B>, f: (a: B) => IO<R, E, A>) => X) => X
+  }
+
+  export function chain<A, R2, E2, B>(f: (a: A) => IO<R2, E2, B>) {
+    return <R, E>(self: IO<R, E, A>): IO<R & R2, E | E2, B> => ({
+      _tag: "Chain",
+      use: (go) => go(self, f)
+    })
+  }
+
+  export interface CatchAll<R, E, A> {
+    readonly _tag: "CatchAll"
+    readonly use: <X>(go: <E1>(fa: IO<R, E1, A>, f: (a: E1) => IO<R, E, A>) => X) => X
+  }
+
+  export function catchAll<E, R2, E2, B>(f: (a: E) => IO<R2, E2, B>) {
+    return <R, A>(self: IO<R, E, A>): IO<R & R2, E2, A | B> => ({
+      _tag: "CatchAll",
+      use: (go) => go(self, f)
+    })
+  }
+
+  export interface Suspend<R, E, A> {
+    readonly _tag: "Suspend"
+    readonly use: <X>(go: (f: () => IO<R, E, A>) => X) => X
+  }
+
+  export function suspend<R, E, A>(f: () => IO<R, E, A>): IO<R, E, A> {
+    return {
+      _tag: "Suspend",
+      use: (go) => go(f)
+    }
+  }
+
+  export interface Access<R, E, A> {
+    readonly _tag: "Access"
+    readonly use: <X>(go: (f: (r: R) => IO<R, E, A>) => X) => X
+  }
+
+  export function access<R, R2, E, A>(f: (r: R) => IO<R2, E, A>): IO<R & R2, E, A> {
+    return {
+      _tag: "Access",
+      use: (go) => go(f)
+    }
+  }
+
+  export interface Provide<R, E, A> {
+    readonly _tag: "Provide"
+    readonly use: <X>(go: <K>(f: (r: R) => K, io: IO<K, E, A>) => X) => X
+  }
+
+  export function contramapEnv<R, K>(f: (r: R) => K) {
+    return <E, A>(io: IO<K, E, A>): IO<R, E, A> => ({
+      _tag: "Provide",
+      use: (go) => go(f, io)
+    })
+  }
+
+  export function provideAll<R>(r: R) {
+    return <E, A>(io: IO<R, E, A>): IO<unknown, E, A> => contramapEnv(() => r)(io)
+  }
+
+  export function provideSome<R>(r: R) {
+    return <K, E, A>(io: IO<K & R, E, A>): IO<K, E, A> =>
+      contramapEnv((k: K) => ({ ...r, ...k }))(io)
+  }
+
+  export type IO<R, E, A> =
+    | Succeed<A>
+    | Map<R, E, A>
+    | Chain<R, E, A>
+    | Suspend<R, E, A>
+    | Fail<E>
+    | CatchAll<R, E, A>
+    | Access<R, E, A>
+    | Provide<R, E, A>
+
+  export function run<E, A>(self: IO<unknown, E, A>): E.Either<E, A> {
+    return runInner(self, {})
+  }
+
+  function runInner<R, E, A>(self: IO<R, E, A>, r: R): E.Either<E, A> {
+    switch (self._tag) {
+      case "Succeed": {
+        return E.right(self.use((a) => a))
+      }
+      case "Map": {
+        return self.use((fa, f) => {
+          const res = runInner(fa, r)
+          if (res._tag === "Right") {
+            return E.right(f(res.right))
+          } else {
+            return E.left(res.left)
+          }
+        })
+      }
+      case "Chain": {
+        return self.use((fa, f) => {
+          const res = runInner(fa, r)
+          if (res._tag === "Right") {
+            return runInner(f(res.right), r)
+          } else {
+            return E.left(res.left)
+          }
+        })
+      }
+      case "Fail": {
+        return self.use((e) => E.left(e))
+      }
+      case "Suspend": {
+        return self.use((f) => runInner(f(), r))
+      }
+      case "CatchAll": {
+        return self.use((fa, f) => {
+          const res = runInner(fa, r)
+          if (res._tag === "Left") {
+            return runInner(f(res.left), r)
+          } else {
+            return E.right(res.right)
+          }
+        })
+      }
+      case "Access": {
+        return self.use((f) => runInner(f(r), r))
+      }
+      case "Provide": {
+        return self.use((f, io) => runInner(io, f(r)))
+      }
+    }
+  }
+
+  interface ApplyFrame {
+    readonly _tag: "ApplyFrame"
+    readonly apply: (a: unknown) => IO<unknown, unknown, unknown>
+  }
+
+  interface CatchFrame {
+    readonly _tag: "CatchFrame"
+    readonly apply: (a: unknown) => IO<unknown, unknown, unknown>
+    readonly catchAll: (e: unknown) => IO<unknown, unknown, unknown>
+  }
+
+  function applyFrame(f: (a: unknown) => IO<unknown, unknown, unknown>): StackFrame {
+    return {
+      _tag: "ApplyFrame",
+      apply: f
+    }
+  }
+  function catchFrame(f: (e: unknown) => IO<unknown, unknown, unknown>): StackFrame {
+    return {
+      _tag: "CatchFrame",
+      apply: succeed,
+      catchAll: f
+    }
+  }
+
+  type StackFrame = ApplyFrame | CatchFrame
+
+  export function runSafe<E, A>(self: IO<unknown, E, A>): E.Either<E, A> {
+    let maybeCurrent: IO<any, any, any> | undefined = self
+    let value: unknown | undefined = undefined
+    let env: unknown = {}
+    let errored = false
+    const stack: Array<StackFrame> = []
+
+    while (maybeCurrent) {
+      const current = maybeCurrent
+
+      switch (current._tag) {
+        case "Succeed": {
+          value = current.use((a) => a)
+          maybeCurrent = undefined
+          break
+        }
+        case "Map": {
+          current.use((fa, f) => {
+            maybeCurrent = fa
+            stack.push(
+              applyFrame((a) =>
+                // @ts-expect-error
+                succeed(f(a))
+              )
+            )
+          })
+          break
+        }
+        case "Chain": {
+          current.use((fa, f) => {
+            maybeCurrent = fa
+            stack.push(
+              // @ts-expect-error
+              applyFrame(f)
+            )
+          })
+          break
+        }
+        case "Suspend": {
+          current.use((f) => {
+            maybeCurrent = f()
+          })
+          break
+        }
+        case "Fail": {
+          current.use((e) => {
+            errored = true
+            value = e
+            maybeCurrent = undefined
+          })
+          while (stack.length > 0) {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            const frame = stack.pop()!
+            if (frame._tag === "CatchFrame") {
+              maybeCurrent = frame.catchAll(value)
+              errored = false
+              break
+            }
+          }
+          break
+        }
+        case "CatchAll": {
+          current.use((fa, f) => {
+            stack.push(
+              // @ts-expect-error
+              catchFrame(f)
+            )
+            maybeCurrent = fa
+          })
+          break
+        }
+        case "Access": {
+          current.use((f) => {
+            maybeCurrent = f(env)
+          })
+          break
+        }
+        case "Provide": {
+          current.use((f, io) => {
+            maybeCurrent = io
+            env = f(env)
+          })
+          break
+        }
+      }
+
+      if (!maybeCurrent && stack.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const frame = stack.pop()!
+        maybeCurrent = frame.apply(value)
+      }
+    }
+
+    // @ts-expect-error
+    return errored ? E.left(value) : E.right(value)
+  }
+
+  export type XX =
+    | IO<{ a: number }, { _tag: "A" }, "A">
+    | IO<{ b: number }, { _tag: "B" }, "B">
+
+  export type ROf = [XX] extends [IO<infer R, any, any>] ? R : never
+  export type EOf = [XX] extends [IO<any, infer E, any>] ? E : never
+}

@@ -1,4 +1,4 @@
-import { BooleanADT, EIO, Pipeable, SimpleIO } from "@app"
+import { BooleanADT, EIO, MiniEffect, Pipeable, SimpleIO } from "@app"
 import * as E from "@effect-ts/core/Either"
 import { pipe } from "@effect-ts/core/Function"
 
@@ -83,5 +83,20 @@ describe("SimpleIO", () => {
     )
     expect(pipe(program, EIO.run)).toEqual(E.right("error: result is 3"))
     expect(pipe(program, EIO.runSafe)).toEqual(E.right("error: result is 3"))
+  })
+  it("Should use map, chain, suspend, succeed, fail and catchAll, access", () => {
+    const program = pipe(
+      MiniEffect.suspend(() =>
+        MiniEffect.access(({ n }: { n: number }) => MiniEffect.succeed(n))
+      ),
+      MiniEffect.map(Pipeable.add(1)),
+      MiniEffect.map(Pipeable.add(2)),
+      MiniEffect.chain((n) => MiniEffect.succeed(Pipeable.renderToString(n))),
+      MiniEffect.chain((s) => MiniEffect.fail(`error: ${s}`)),
+      MiniEffect.catchAll((e) => MiniEffect.succeed(e)),
+      MiniEffect.provideSome({ n: 1 })
+    )
+    expect(MiniEffect.run(program)).toEqual(E.right("error: result is 4"))
+    expect(MiniEffect.runSafe(program)).toEqual(E.right("error: result is 4"))
   })
 })
