@@ -11,13 +11,19 @@ export type Schema<I, A> =
   | SchemaUnknownArray<I, A>
   | SchemaObject<I, A>
 
-export class SchemaCompose<I, A> {
+abstract class Common<I, A> {
+  readonly [">>>"] = <B>(that: Schema<A, B>): Schema<I, B> => {
+    // @ts-expect-error
+    return compose(that)(this)
+  }
+}
+
+export class SchemaCompose<I, A> extends Common<I, A> {
   readonly _tag = "SchemaCompose"
   constructor(
     readonly use: <X>(f: <B>(self: Schema<I, B>, that: Schema<B, A>) => X) => X
-  ) {}
-  readonly [">>>"] = <B>(that: Schema<A, B>): Schema<I, B> => {
-    return compose(that)(this)
+  ) {
+    super()
   }
 }
 
@@ -26,13 +32,12 @@ export function compose<B, A>(that: Schema<B, A>) {
     new SchemaCompose((f) => f(self, that))
 }
 
-export class SchemaString<I, A> {
+export class SchemaString<I, A> extends Common<I, A> {
   readonly _tag = "SchemaString"
   constructor(
     readonly use: <X>(f: (out: (s: string) => A, inp: (u: I) => unknown) => X) => X
-  ) {}
-  readonly [">>>"] = <B>(that: Schema<A, B>): Schema<I, B> => {
-    return compose(that)(this)
+  ) {
+    super()
   }
 }
 
@@ -40,13 +45,12 @@ export const string: Schema<unknown, string> = new SchemaString((f) =>
   f(identity, identity)
 )
 
-export class SchemaObject<I, A> {
+export class SchemaObject<I, A> extends Common<I, A> {
   readonly _tag = "SchemaObject"
   constructor(
     readonly use: <X>(f: (out: (s: {}) => A, inp: (u: I) => unknown) => X) => X
-  ) {}
-  readonly [">>>"] = <B>(that: Schema<A, B>): Schema<I, B> => {
-    return compose(that)(this)
+  ) {
+    super()
   }
 }
 
@@ -54,15 +58,14 @@ export const object: Schema<unknown, {}> = new SchemaObject((f) =>
   f(identity, identity)
 )
 
-export class SchemaUnknownArray<I, A> {
+export class SchemaUnknownArray<I, A> extends Common<I, A> {
   readonly _tag = "SchemaUnknownArray"
   constructor(
     readonly use: <X>(
       f: (out: (s: readonly unknown[]) => A, inp: (u: I) => unknown) => X
     ) => X
-  ) {}
-  readonly [">>>"] = <B>(that: Schema<A, B>): Schema<I, B> => {
-    return compose(that)(this)
+  ) {
+    super()
   }
 }
 
@@ -71,13 +74,12 @@ export const unknownArray: Schema<
   readonly unknown[]
 > = new SchemaUnknownArray((f) => f(identity, identity))
 
-export class SchemaNumber<I, A> {
+export class SchemaNumber<I, A> extends Common<I, A> {
   readonly _tag = "SchemaNumber"
   constructor(
     readonly use: <X>(f: (out: (n: number) => A, inp: (u: I) => unknown) => X) => X
-  ) {}
-  readonly [">>>"] = <B>(that: Schema<A, B>): Schema<I, B> => {
-    return compose(that)(this)
+  ) {
+    super()
   }
 }
 
@@ -85,13 +87,12 @@ export const number: Schema<unknown, number> = new SchemaNumber((f) =>
   f(identity, identity)
 )
 
-export class SchemaDateIso<I, A> {
+export class SchemaDateIso<I, A> extends Common<I, A> {
   readonly _tag = "SchemaDateIso"
   constructor(
     readonly use: <X>(f: (out: (s: Date) => A, inp: (u: I) => string) => X) => X
-  ) {}
-  readonly [">>>"] = <B>(that: Schema<A, B>): Schema<I, B> => {
-    return compose(that)(this)
+  ) {
+    super()
   }
 }
 
@@ -107,7 +108,7 @@ export type SchemaRecordType<
   readonly [k in keyof Props]: [Props[k]] extends [Schema<unknown, infer A>] ? A : never
 }
 
-export class SchemaArray<I, A> {
+export class SchemaArray<I, A> extends Common<I, A> {
   readonly _tag = "SchemaArray"
   constructor(
     readonly use: <X>(
@@ -117,9 +118,8 @@ export class SchemaArray<I, A> {
         element: Schema<Input, Element>
       ) => X
     ) => X
-  ) {}
-  readonly [">>>"] = <B>(that: Schema<A, B>): Schema<I, B> => {
-    return compose(that)(this)
+  ) {
+    super()
   }
 }
 
@@ -127,7 +127,7 @@ export function array<I, A>(element: Schema<I, A>): Schema<readonly I[], readonl
   return new SchemaArray((f) => f(identity, identity, element))
 }
 
-export class SchemaRecord<I, A> {
+export class SchemaRecord<I, A> extends Common<I, A> {
   readonly _tag = "SchemaRecord"
   constructor(
     readonly use: <X>(
@@ -137,9 +137,8 @@ export class SchemaRecord<I, A> {
         props: Props
       ) => X
     ) => X
-  ) {}
-  readonly [">>>"] = <B>(that: Schema<A, B>): Schema<I, B> => {
-    return compose(that)(this)
+  ) {
+    super()
   }
 }
 
