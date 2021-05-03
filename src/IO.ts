@@ -388,19 +388,17 @@ export function runSafe<R>(r: R): <E, A>(self: IO<R, E, A>) => E.Either<E, A> {
             self.use(({ fa, provideFn }) => {
               const prevR = r
               // @ts-expect-error
-              r = provideFn(r)
-              // @ts-expect-error
               self = pipe(
-                fa,
-                foldM(
-                  (e) => {
-                    r = prevR
-                    return fail(e)
-                  },
-                  (a) => {
-                    r = prevR
-                    return succeed(a)
-                  }
+                succeedWith(() => {
+                  // @ts-expect-error
+                  r = provideFn(r)
+                }),
+                bracket(
+                  () => fa,
+                  () =>
+                    succeedWith(() => {
+                      r = prevR
+                    })
                 )
               )
             })
