@@ -31,7 +31,8 @@
       "@app/*": ["src/*"],
       "@app": ["src"]
     },
-    "target": "ES2018"
+    "target": "ES2018",
+    "typeRoots": ["./node_modules/@types", "./typings"]
   },
   "exclude": ["node_modules", "lib"]
 }

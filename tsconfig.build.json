@@ -1,11 +1,11 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "incremental": true,
-    "tsBuildInfoFile": "tsbuildinfo/main.tsbuildinfo",
+    "outDir": "lib",
     "plugins": [
       { "transform": "@effect-ts/tracing-plugin" },
       { "transform": "typescript-transform-paths" }
     ]
-  }
+  },
+  "include": ["src/**/*.ts"]
 }
