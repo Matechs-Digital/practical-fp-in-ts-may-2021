@@ -1,5 +1,4 @@
 import * as E from "@effect-ts/core/Either"
-import { Stack } from "@effect-ts/system/Fiber"
 import { identity, pipe } from "@effect-ts/system/Function"
 
 /**
@@ -27,8 +26,8 @@ export type IO<R, E, A> =
   | Succeed<R, E, A>
   | Fail<R, E, A>
   | Access<R, E, A>
+  | Chain<R, E, A>
   | Fold<R, E, A>
-  | Provide<R, E, A>
 
 /**
  * Exercise:
@@ -148,6 +147,73 @@ export type EOf = [XX] extends [IO<any, infer E, any>] ? E : never // should be 
 /**
  * Exercise:
  *
+ * We want to be able to execute sequences of operations, create a primitive for that
+ */
+export class Chain<R, E, A> {
+  readonly _tag = "Chain"
+
+  constructor(
+    readonly use: <X>(
+      f: <T>(_: { readonly fx: IO<R, E, T>; readonly xfa: (a: T) => IO<R, E, A> }) => X
+    ) => X
+  ) {}
+}
+
+/**
+ * Exercise:
+ *
+ * Produces an effect that describe the operation of running `self`, taking it's result and
+ * feed it into `chainFn` to produce a new operation
+ */
+export function chain<A, R1, E1, A1>(
+  chainFn: (a: A) => IO<R1, E1, A1>
+): <R, E>(self: IO<R, E, A>) => IO<R & R1, E | E1, A1> {
+  return (self) =>
+    new Chain((f) =>
+      f({
+        fx: self,
+        xfa: chainFn
+      })
+    )
+}
+
+/**
+ * First small program, should be typed as:
+ *
+ * IO<{
+ *     n: number;
+ * }, "positive", `got ${number}`>
+ */
+export const simpleProgram = pipe(
+  access(({ n }: { n: number }) => n),
+  chain((n) => (n > 0 ? fail("positive" as const) : succeed(`got ${n}` as const)))
+)
+
+/**
+ * Implement the map function in terms of chain & succeed
+ */
+export declare function map<A, A1>(
+  chainFn: (a: A) => A1
+): <R, E>(self: IO<R, E, A>) => IO<R, E, A1>
+
+/**
+ * Implement the costant `unit`
+ */
+export declare const unit: IO<unknown, never, void>
+
+/**
+ * Implement the constructor `succeedWith`
+ */
+export declare function succeedWith<A>(f: () => A): IO<unknown, never, A>
+
+/**
+ * Implement the constructor `failWith`
+ */
+export declare function failWith<E>(f: () => E): IO<unknown, E, never>
+
+/**
+ * Exercise:
+ *
  * We want to be able to catch errors in operations, and recover
  */
 export class Fold<R, E, A> {
@@ -167,126 +233,20 @@ export class Fold<R, E, A> {
 /**
  * Exercise:
  *
- * Folds both success and failures
- */
-export function foldM<E, A, R1, E1, A1, R2, E2, A2>(
-  onError: (e: E) => IO<R2, E2, A2>,
-  onSuccess: (a: A) => IO<R1, E1, A1>
-): <R>(self: IO<R, E, A>) => IO<R & R1 & R2, E1 | E2, A1 | A2> {
-  return (self) => {
-    const fx = self
-    if (typeof self === "undefined") {
-      throw new Error("MMM")
-    }
-    return new Fold((f) =>
-      f({
-        fx,
-        onError,
-        onSuccess
-      })
-    )
-  }
-}
-
-/**
- * Exercise:
- *
- * - Never fail (E => never)
- * - Requires R to produce A
- */
-export class Provide<R, E, A> {
-  readonly _tag = "Provide"
-
-  constructor(
-    readonly use: <X>(
-      f: <R0>(_: { readonly fa: IO<R0, E, A>; readonly provideFn: (r: R) => R0 }) => X
-    ) => X
-  ) {}
-}
-
-export function provideSome<R, R0>(provideFn: (r: R) => R0) {
-  return <E, A>(self: IO<R0, E, A>): IO<R, E, A> =>
-    new Provide((f) => f({ provideFn, fa: self }))
-}
-
-/**
- * Exercise:
- *
- * Produces an effect that describe the operation of running `self`, taking it's result and
- * feed it into `chainFn` to produce a new operation
- */
-export function chain<A, R1, E1, A1>(
-  chainFn: (a: A) => IO<R1, E1, A1>
-): <R, E>(self: IO<R, E, A>) => IO<R & R1, E | E1, A1> {
-  return (self) => {
-    const fx = self
-    if (typeof self === "undefined") {
-      throw new Error("MMM")
-    }
-    return new Fold((f) =>
-      f({
-        fx,
-        onSuccess: chainFn,
-        onError: fail
-      })
-    )
-  }
-}
-
-/**
- * Implement the map function in terms of chain & succeed
- */
-export declare function map<A, A1>(
-  chainFn: (a: A) => A1
-): <R, E>(self: IO<R, E, A>) => IO<R, E, A1>
-
-/**
- * Implement the costant `unit`
- */
-export const unit: IO<unknown, never, void> = succeed(void 0)
-
-/**
- * Implement the constructor `succeedWith`
- */
-export function succeedWith<A>(f: () => A): IO<unknown, never, A> {
-  return pipe(
-    unit,
-    chain(() => succeed(f()))
-  )
-}
-
-/**
- * Implement the constructor `failWith`
- */
-export function failWith<E>(f: () => E): IO<unknown, E, never> {
-  return pipe(
-    unit,
-    chain(() => fail(f()))
-  )
-}
-
-/**
- * Exercise:
- *
  * Produces an effect that describe the operation of running `self`, taking it's error in case
  * of failures and feed it into `recoverFn` to produce a new operation
  */
 export function catchAll<E, R1, E1, A1>(
   recoverFn: (e: E) => IO<R1, E1, A1>
 ): <R, A>(self: IO<R, E, A>) => IO<R & R1, E1, A | A1> {
-  return (self) => {
-    const fx = self
-    if (typeof self === "undefined") {
-      throw new Error("MMM")
-    }
-    return new Fold((f) =>
+  return (self) =>
+    new Fold((f) =>
       f({
-        fx,
+        fx: self,
         onError: recoverFn,
         onSuccess: succeed
       })
     )
-  }
 }
 
 /**
@@ -305,17 +265,11 @@ export function bracket<A, RU, EU, AU, RF, EF, AF>(
       chain((a) =>
         pipe(
           use(a),
-          foldM(
-            (eu) =>
-              pipe(
-                finalize(a, E.left(eu)),
-                chain(() => fail(eu))
-              ),
-            (au) =>
-              pipe(
-                finalize(a, E.right(au)),
-                chain(() => succeed(au))
-              )
+          chain((au) =>
+            pipe(
+              finalize(a, E.right(au)),
+              chain(() => succeed(au))
+            )
           )
         )
       )
@@ -337,8 +291,14 @@ export function run<R>(r: R): <E, A>(self: IO<R, E, A>) => E.Either<E, A> {
       case "Access": {
         return self.use(({ accessFn }) => E.right(accessFn(r)))
       }
-      case "Provide": {
-        return self.use(({ fa, provideFn }) => run(provideFn(r))(fa))
+      case "Chain": {
+        return self.use(({ fx, xfa }) => {
+          const resA = run(r)(fx)
+          if (resA._tag === "Left") {
+            return E.left(resA.left)
+          }
+          return run(r)(xfa(resA.right))
+        })
       }
       case "Fold": {
         return self.use(({ fx, onError, onSuccess }) => {
@@ -356,115 +316,3 @@ export function run<R>(r: R): <E, A>(self: IO<R, E, A>) => E.Either<E, A> {
 /**
  * Write tests to assert that everythig up to now works as expected
  */
-
-class FrameFold {
-  readonly _tag = "FrameFold"
-  constructor(
-    readonly onError: (e: any) => IO<any, any, any>,
-    readonly onSuccess: (a: any) => IO<any, any, any>
-  ) {}
-}
-
-type RunSafeStack = Stack<FrameFold> | undefined
-
-/**
- * Example
- *
- * Stack safe interpreter
- */
-export function runSafe<R>(r: R): <E, A>(self: IO<R, E, A>) => E.Either<E, A> {
-  return (self) => {
-    let stack = undefined as RunSafeStack
-
-    let result = undefined
-    let isError = false
-
-    // eslint-disable-next-line no-constant-condition
-    recursing: while (1) {
-      // eslint-disable-next-line no-constant-condition
-      pushing: while (1) {
-        switch (self._tag) {
-          case "Succeed": {
-            result = self.use(({ value }) => value)
-            isError = false
-            break pushing
-          }
-          case "Fail": {
-            result = self.use(({ error }) => error)
-            isError = true
-            break pushing
-          }
-          case "Access": {
-            result = self.use(({ accessFn }) => accessFn(r))
-            isError = false
-            break pushing
-          }
-          case "Provide": {
-            self.use(({ fa, provideFn }) => {
-              const prevR = r
-              // @ts-expect-error
-              r = provideFn(r)
-              // @ts-expect-error
-              self = pipe(
-                fa,
-                foldM(
-                  (e) => {
-                    r = prevR
-                    return fail(e)
-                  },
-                  (a) => {
-                    r = prevR
-                    return succeed(a)
-                  }
-                )
-              )
-            })
-            continue pushing
-          }
-          case "Fold": {
-            self.use(({ fx, onError, onSuccess }) => {
-              stack = new Stack(new FrameFold(onError, onSuccess), stack)
-              // @ts-expect-error
-              self = fx
-            })
-            continue pushing
-          }
-        }
-      }
-      // eslint-disable-next-line no-constant-condition
-      while (1) {
-        if (stack) {
-          const frame = stack.value
-          stack = stack.previous
-          switch (frame._tag) {
-            case "FrameFold": {
-              if (isError) {
-                self = frame.onError(result)
-                isError = false
-                continue recursing
-              } else {
-                self = frame.onSuccess(result)
-                continue recursing
-              }
-            }
-          }
-        }
-        break recursing
-      }
-    }
-
-    return isError ? E.left(result as any) : E.right(result as any)
-  }
-}
-
-/**
- * First small program, should be typed as:
- *
- * IO<{
- *     n: number;
- * }, "positive", `got ${number}`>
- */
-export const simpleProgram = pipe(
-  access(({ n }: { n: number }) => n),
-  chain((n) => (n > 0 ? fail("positive" as const) : succeed(`got ${n}` as const)))
-)

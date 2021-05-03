@@ -27,4 +27,29 @@ describe("IO", () => {
       )
     ).equals(E.right("positive"))
   })
+  it("simpleProgram should succees on negative input, providing locally", () => {
+    const cleanup = jest.fn()
+    expect(
+      pipe(
+        IO.simpleProgram,
+        IO.provideSome(() => ({ n: -1 })),
+        IO.run({})
+      )
+    ).equals(E.right("got -1"))
+    expect(
+      pipe(
+        IO.simpleProgram,
+        IO.provideSome(() => ({ n: -1 })),
+        IO.bracket(
+          (a) => IO.succeed(a),
+          () =>
+            IO.succeedWith(() => {
+              cleanup()
+            })
+        ),
+        IO.runSafe({})
+      )
+    ).equals(E.right("got -1"))
+    expect(cleanup).toHaveBeenCalledTimes(1)
+  })
 })
