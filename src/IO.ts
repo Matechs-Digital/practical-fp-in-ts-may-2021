@@ -173,19 +173,14 @@ export function foldM<E, A, R1, E1, A1, R2, E2, A2>(
   onError: (e: E) => IO<R2, E2, A2>,
   onSuccess: (a: A) => IO<R1, E1, A1>
 ): <R>(self: IO<R, E, A>) => IO<R & R1 & R2, E1 | E2, A1 | A2> {
-  return (self) => {
-    const fx = self
-    if (typeof self === "undefined") {
-      throw new Error("MMM")
-    }
-    return new Fold((f) =>
+  return (self) =>
+    new Fold((f) =>
       f({
-        fx,
+        fx: self,
         onError,
         onSuccess
       })
     )
-  }
 }
 
 /**
@@ -218,19 +213,14 @@ export function provideSome<R, R0>(provideFn: (r: R) => R0) {
 export function chain<A, R1, E1, A1>(
   chainFn: (a: A) => IO<R1, E1, A1>
 ): <R, E>(self: IO<R, E, A>) => IO<R & R1, E | E1, A1> {
-  return (self) => {
-    const fx = self
-    if (typeof self === "undefined") {
-      throw new Error("MMM")
-    }
-    return new Fold((f) =>
+  return (self) =>
+    new Fold((f) =>
       f({
-        fx,
+        fx: self,
         onSuccess: chainFn,
         onError: fail
       })
     )
-  }
 }
 
 /**
@@ -274,19 +264,14 @@ export function failWith<E>(f: () => E): IO<unknown, E, never> {
 export function catchAll<E, R1, E1, A1>(
   recoverFn: (e: E) => IO<R1, E1, A1>
 ): <R, A>(self: IO<R, E, A>) => IO<R & R1, E1, A | A1> {
-  return (self) => {
-    const fx = self
-    if (typeof self === "undefined") {
-      throw new Error("MMM")
-    }
-    return new Fold((f) =>
+  return (self) =>
+    new Fold((f) =>
       f({
-        fx,
+        fx: self,
         onError: recoverFn,
         onSuccess: succeed
       })
     )
-  }
 }
 
 /**
