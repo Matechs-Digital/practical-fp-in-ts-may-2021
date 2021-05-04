@@ -97,3 +97,9 @@ export declare function guard<A>(self: Schema<A>): Guard<A>
  *
  * 4) a constructor that composes 2 & 3
  */
+
+/**
+ * Exercise:
+ *
+ * Add a method [">>>"] in schema to perform composition like: object[">>>"](struct({a: ...}))
+ */
