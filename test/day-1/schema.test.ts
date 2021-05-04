@@ -1,4 +1,4 @@
-import * as S from "@app/Schema"
+import * as S from "@app/solutions/day-1/schema"
 import * as E from "@effect-ts/core/Either"
 
 const Person_ = S.object[">>>"](

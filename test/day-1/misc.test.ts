@@ -1,4 +1,10 @@
-import { BooleanADT, EIO, MiniEffect, Pipeable, SimpleIO } from "@app"
+import {
+  BooleanADT,
+  EIO,
+  MiniEffect,
+  Pipeable,
+  SimpleIO
+} from "@app/solutions/day-1/misc"
 import * as E from "@effect-ts/core/Either"
 import { pipe } from "@effect-ts/core/Function"
 
@@ -41,6 +47,7 @@ describe("SimpleIO", () => {
       )
     ).toEqual("result is 3")
   })
+
   it("Should use map, chain and succeed", () => {
     const program = pipe(
       SimpleIO.succeed(0),
@@ -51,6 +58,7 @@ describe("SimpleIO", () => {
     expect(pipe(program, SimpleIO.run)).toEqual("result is 3")
     expect(pipe(program, SimpleIO.runSafe)).toEqual("result is 3")
   })
+
   it("Should use map, chain, suspend and succeed", () => {
     const program = pipe(
       SimpleIO.suspend(() => SimpleIO.succeed(0)),
