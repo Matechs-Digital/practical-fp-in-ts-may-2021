@@ -23,39 +23,39 @@ import { matchTag } from "@effect-ts/system/Utils"
  * 2) number values
  * 3) uknown values
  */
-export type Schema<A> = SchemaString<A> | SchemaNumber<A> | SchemaUnknown<A>
+export type Schema<I, A> = SchemaString<I, A> | SchemaNumber<I, A> | SchemaUnknown<I, A>
 
-export class SchemaString<A> {
+export class SchemaString<I, A> {
   readonly _tag = "SchemaString"
-  constructor(readonly _A: (_: string) => A) {}
+  constructor(readonly _A: (_: string) => A, readonly _I: (_: I) => unknown) {}
 }
 
-export const string: Schema<string> = new SchemaString(identity)
+export const string: Schema<unknown, string> = new SchemaString(identity, identity)
 
-export class SchemaNumber<A> {
+export class SchemaNumber<I, A> {
   readonly _tag = "SchemaNumber"
-  constructor(readonly _A: (_: number) => A) {}
+  constructor(readonly _A: (_: number) => A, readonly _I: (_: I) => unknown) {}
 }
 
-export const number: Schema<number> = new SchemaNumber(identity)
+export const number: Schema<unknown, number> = new SchemaNumber(identity, identity)
 
-export class SchemaUnknown<A> {
+export class SchemaUnknown<I, A> {
   readonly _tag = "SchemaUnknown"
-  constructor(readonly _A: (_: unknown) => A) {}
+  constructor(readonly _A: (_: unknown) => A, readonly _I: (_: I) => unknown) {}
 }
 
-export const unknown: Schema<unknown> = new SchemaUnknown(identity)
+export const unknown: Schema<unknown, unknown> = new SchemaUnknown(identity, identity)
 
 /**
  * Exercise:
  *
  * implement the parse function that derive a Parser from a schema
  */
-export interface Parser<A> {
-  (u: unknown): E.Either<string, A>
+export interface Parser<I, A> {
+  (u: I): E.Either<string, A>
 }
 
-export function parse<A>(self: Schema<A>): Parser<A> {
+export function parse<I, A>(self: Schema<I, A>): Parser<I, A> {
   return pipe(
     self,
     matchTag({
@@ -81,7 +81,7 @@ export interface Guard<A> {
   (u: unknown): u is A
 }
 
-export function guard<A>(self: Schema<A>): Guard<A> {
+export function guard<I, A>(self: Schema<I, A>): Guard<A> {
   return pipe(
     self,
     matchTag({
@@ -94,6 +94,8 @@ export function guard<A>(self: Schema<A>): Guard<A> {
   )
 }
 
+// RECORD
+
 /**
  * Exercise:
  *
@@ -102,7 +104,7 @@ export function guard<A>(self: Schema<A>): Guard<A> {
  * the parsed model.
  *
  * First extend Schema to become Schema<I, A> then create a new primitive
- * SchemaCompose<I, A> that composes Parser<I, T> with Parser<T, A> to represent the
+ * SchemaCompose<I, A> that composes Schema<I, T> with Schema<T, A> to represent the
  * activity of first parsing I to T then parsing T to A
  */
 
