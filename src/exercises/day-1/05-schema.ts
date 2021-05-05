@@ -28,6 +28,7 @@ export type Schema<I, A> =
   | SchemaNumber<I, A>
   | SchemaUnknown<I, A>
   | SchemaCompose<I, A>
+  | SchemaNumberString<I, A>
 
 export class SchemaString<I, A> {
   readonly _tag = "SchemaString"
@@ -62,6 +63,18 @@ export function compose<A, B>(that: Schema<A, B>) {
     new SchemaCompose((go) => go(self, that))
 }
 
+export class SchemaNumberString<I, A> {
+  readonly _tag = "SchemaNumberString"
+  constructor(readonly _A: (_: number) => A, readonly _I: (_: I) => string) {}
+}
+
+export const numberString: Schema<string, number> = new SchemaNumberString(
+  identity,
+  identity
+)
+
+export const unknownStringNumber = pipe(string, compose(numberString))
+
 /**
  * Exercise:
  *
@@ -84,6 +97,16 @@ export function parse<I, A>(self: Schema<I, A>): Parser<I, A> {
         typeof u === "string"
           ? E.right(self._A(u))
           : E.left(`was expecting a string but got ${JSON.stringify(u)}`)
+    }
+    case "SchemaNumberString": {
+      return (u: I) => {
+        const i = self._I(u)
+        const n = Number.parseFloat(i)
+        if (Number.isNaN(n)) {
+          return E.left(`was expecting a number encoded as a string got: ${i}`)
+        }
+        return E.right(self._A(n))
+      }
     }
     case "SchemaUnknown": {
       return (u: I) => E.right(self._A(u))
@@ -108,6 +131,8 @@ export function guard<I, A>(self: Schema<I, A>): Guard<A> {
     self,
     matchTag({
       SchemaNumber: () => (_: unknown): _ is A =>
+        typeof _ === "number" ? true : false,
+      SchemaNumberString: () => (_: unknown): _ is A =>
         typeof _ === "number" ? true : false,
       SchemaString: () => (_: unknown): _ is A =>
         typeof _ === "string" ? true : false,
