@@ -7,6 +7,9 @@
  * your day-to-day problems.
  */
 
+import { pipe } from "@effect-ts/core/Function"
+import { matchTag } from "@effect-ts/core/Utils"
+
 /**
  * Segment:
  *
@@ -28,9 +31,32 @@ export class False {
 
 export type BooleanADT = True | False
 
-export declare const trueValue: BooleanADT
+export const trueValue: BooleanADT = new True()
 
-export declare const falseValue: BooleanADT
+export const falseValue: BooleanADT = new False()
+
+export function invert(self: BooleanADT): BooleanADT {
+  return pipe(
+    self,
+    matchTag({
+      False: () => trueValue,
+      True: () => falseValue
+    })
+  )
+}
+
+export function equals(bool2: BooleanADT) {
+  return (bool1: BooleanADT) => bool1._tag === bool2._tag
+}
+
+export function render(a: BooleanADT) {
+  switch (a._tag) {
+    case "False":
+      return "False"
+    case "True":
+      return "True"
+  }
+}
 
 /**
  * Exercise:
@@ -42,7 +68,52 @@ export declare const falseValue: BooleanADT
  * - Mul (describe a multiplication operation of 2 expressions)
  * - Div (describe a division operation of 2 expressions)
  */
-export type MathExpr = never
+export class Value {
+  readonly _tag = "Value"
+  constructor(readonly value: number) {}
+}
+
+export class Add {
+  readonly _tag = "Add"
+  constructor(readonly op1: MathExpr, readonly op2: MathExpr) {}
+}
+
+export class Sub {
+  readonly _tag = "Sub"
+  constructor(readonly op1: MathExpr, readonly op2: MathExpr) {}
+}
+
+export class Mul {
+  readonly _tag = "Mul"
+  constructor(readonly op1: MathExpr, readonly op2: MathExpr) {}
+}
+
+export class Div {
+  readonly _tag = "Div"
+  constructor(readonly op1: MathExpr, readonly op2: MathExpr) {}
+}
+
+export function value(value: number): MathExpr {
+  return new Value(value)
+}
+
+export function add(op2: MathExpr) {
+  return (op1: MathExpr): MathExpr => new Add(op1, op2)
+}
+
+export function sub(op2: MathExpr) {
+  return (op1: MathExpr): MathExpr => new Sub(op1, op2)
+}
+
+export function mul(op2: MathExpr) {
+  return (op1: MathExpr): MathExpr => new Mul(op1, op2)
+}
+
+export function div(op2: MathExpr) {
+  return (op1: MathExpr): MathExpr => new Div(op1, op2)
+}
+
+export type MathExpr = Value | Add | Sub | Mul | Div
 
 /**
  * Exercise:
@@ -55,14 +126,31 @@ export type MathExpr = never
  *
  * Create a small program using the MathExpr constructors
  */
-export declare const program: MathExpr
+export const program: MathExpr = pipe(
+  value(2),
+  add(value(3)),
+  sub(value(4)),
+  mul(value(2)),
+  div(value(5))
+)
 
 /**
  * Exercise:
  *
  * Implement the function evaluate
  */
-export declare function evaluate(expr: MathExpr): number
+export function evaluate(expr: MathExpr): number {
+  return pipe(
+    expr,
+    matchTag({
+      Add: ({ op1, op2 }) => evaluate(op1) + evaluate(op2),
+      Sub: ({ op1, op2 }) => evaluate(op1) - evaluate(op2),
+      Div: ({ op1, op2 }) => evaluate(op1) / evaluate(op2),
+      Mul: ({ op1, op2 }) => evaluate(op1) * evaluate(op2),
+      Value: (v) => v.value
+    })
+  )
+}
 
 /**
  * Exercise:
