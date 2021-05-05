@@ -45,7 +45,7 @@ Day 3:
 - Managing Resources with the Managed Data-Type
 - Using Layers to structure dependency construction
 - A quick overview of the tools in the box (queues, ref, schedule, stream, etc.)
-- Build a minimal HTTP server that executed queries against PostgreSQL
+- Build a minimal HTTP server that executes queries against PostgreSQL
 
 ## Organization
 
