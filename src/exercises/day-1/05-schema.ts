@@ -6,7 +6,9 @@
  * Schema is a module to describe data-types that enable derivation of Parser, Guard and potentially other utilities.
  */
 
-import type { Either } from "@effect-ts/core/Either"
+import * as E from "@effect-ts/core/Either"
+import { identity, pipe } from "@effect-ts/system/Function"
+import { matchTag } from "@effect-ts/system/Utils"
 
 /**
  * Write tests while implementing
@@ -23,11 +25,26 @@ import type { Either } from "@effect-ts/core/Either"
  */
 export type Schema<A> = SchemaString<A> | SchemaNumber<A> | SchemaUnknown<A>
 
-export type SchemaString<A> = A
+export class SchemaString<A> {
+  readonly _tag = "SchemaString"
+  constructor(readonly _A: (_: string) => A) {}
+}
 
-export type SchemaNumber<A> = A
+export const string: Schema<string> = new SchemaString(identity)
 
-export type SchemaUnknown<A> = A
+export class SchemaNumber<A> {
+  readonly _tag = "SchemaNumber"
+  constructor(readonly _A: (_: number) => A) {}
+}
+
+export const number: Schema<number> = new SchemaNumber(identity)
+
+export class SchemaUnknown<A> {
+  readonly _tag = "SchemaUnknown"
+  constructor(readonly _A: (_: unknown) => A) {}
+}
+
+export const unknown: Schema<unknown> = new SchemaUnknown(identity)
 
 /**
  * Exercise:
@@ -35,10 +52,25 @@ export type SchemaUnknown<A> = A
  * implement the parse function that derive a Parser from a schema
  */
 export interface Parser<A> {
-  (u: unknown): Either<string, A>
+  (u: unknown): E.Either<string, A>
 }
 
-export declare function parse<A>(self: Schema<A>): Parser<A>
+export function parse<A>(self: Schema<A>): Parser<A> {
+  return pipe(
+    self,
+    matchTag({
+      SchemaNumber: ({ _A }) => (u: unknown) =>
+        typeof u === "number"
+          ? E.right(_A(u))
+          : E.left(`was expecting a string but got ${JSON.stringify(u)}`),
+      SchemaString: ({ _A }) => (u: unknown) =>
+        typeof u === "string"
+          ? E.right(_A(u))
+          : E.left(`was expecting a string but got ${JSON.stringify(u)}`),
+      SchemaUnknown: ({ _A }) => (u: unknown) => E.right(_A(u))
+    })
+  )
+}
 
 /**
  * Exercise:
@@ -49,7 +81,18 @@ export interface Guard<A> {
   (u: unknown): u is A
 }
 
-export declare function guard<A>(self: Schema<A>): Guard<A>
+export function guard<A>(self: Schema<A>): Guard<A> {
+  return pipe(
+    self,
+    matchTag({
+      SchemaNumber: () => (_: unknown): _ is A =>
+        typeof _ === "number" ? true : false,
+      SchemaString: () => (_: unknown): _ is A =>
+        typeof _ === "string" ? true : false,
+      SchemaUnknown: () => (_: unknown): _ is A => true
+    })
+  )
+}
 
 /**
  * Exercise:
