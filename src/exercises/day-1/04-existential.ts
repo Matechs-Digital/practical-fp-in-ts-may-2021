@@ -29,7 +29,6 @@ export type Expr<A> =
   | Mul<A>
   | Div<A>
   | Concat<A>
-  | Stringify<A>
   | Chain<A>
 
 export class ChainOps<A, B> {
@@ -96,17 +95,8 @@ export class Concat<A> {
   ) {}
 }
 
-export class Stringify<A> {
-  readonly _tag = "Stringify"
-  constructor(readonly op: Expr<number>, readonly _A: (a: string) => A) {}
-}
-
 export const concat = (op2: Expr<string>) => (op1: Expr<string>): Expr<string> =>
   new Concat(op1, op2, identity)
-
-export function stringify(op: Expr<number>): Expr<string> {
-  return new Stringify(op, identity)
-}
 
 export function numericValue(value: number): Expr<number> {
   return new NumericValue(value, identity)
@@ -132,6 +122,10 @@ export function div(right: Expr<number>) {
   return (left: Expr<number>): Expr<number> => new Div(left, right, identity)
 }
 
+export function chain<A, B>(f: (a: A) => Expr<B>): (self: Expr<A>) => Expr<B> {
+  return (self) => new Chain((g) => g(new ChainOps(self, f)))
+}
+
 /**
  * Exercise:
  *
@@ -148,8 +142,7 @@ export function evaluate<A>(expr: Expr<A>): A {
       NumericValue: ({ _A, value }) => _A(value),
       StringValue: ({ _A, value }) => _A(value),
       Concat: ({ _A, op1, op2 }) => _A(evaluate(op1) + evaluate(op2)),
-      Stringify: ({ _A, op }) => _A(`${evaluate(op)}`),
-      Chain: () => hole()
+      Chain: (_) => hole()
     })
   )
 }
@@ -159,4 +152,10 @@ export function evaluate<A>(expr: Expr<A>): A {
  *
  * Write a program that uses the new chain primitive and test it
  */
-export declare const program: Expr<string>
+export const program = pipe(
+  numericValue(3),
+  add(numericValue(9)),
+  div(numericValue(4)),
+  chain((n) => stringValue(`${n}`)),
+  chain((s) => stringValue(`${s}pizza`))
+)
