@@ -57,6 +57,11 @@ export class SchemaCompose<I, A> {
   ) {}
 }
 
+export function compose<A, B>(that: Schema<A, B>) {
+  return <I>(self: Schema<I, A>): Schema<I, B> =>
+    new SchemaCompose((go) => go(self, that))
+}
+
 /**
  * Exercise:
  *
