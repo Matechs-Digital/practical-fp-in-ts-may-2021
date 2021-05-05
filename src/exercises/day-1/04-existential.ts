@@ -6,7 +6,7 @@
  * In this module we introduce existential types as types that exists within a bounded context.
  */
 
-import { hole, identity, pipe } from "@effect-ts/core/Function"
+import { identity, pipe } from "@effect-ts/core/Function"
 import { matchTag } from "@effect-ts/core/Utils"
 
 /**
@@ -115,7 +115,16 @@ export function sub(right: Expr<number>) {
 }
 
 export function mul(right: Expr<number>) {
-  return (left: Expr<number>): Expr<number> => new Mul(left, right, identity)
+  return (left: Expr<number>): Expr<number> =>
+    pipe(
+      left,
+      chain((l) =>
+        pipe(
+          right,
+          chain((r) => numericValue(l * r))
+        )
+      )
+    )
 }
 
 export function div(right: Expr<number>) {
@@ -142,7 +151,7 @@ export function evaluate<A>(expr: Expr<A>): A {
       NumericValue: ({ _A, value }) => _A(value),
       StringValue: ({ _A, value }) => _A(value),
       Concat: ({ _A, op1, op2 }) => _A(evaluate(op1) + evaluate(op2)),
-      Chain: (_) => hole()
+      Chain: ({ use }) => use((dk) => evaluate(dk.f(evaluate(dk.self))))
     })
   )
 }
