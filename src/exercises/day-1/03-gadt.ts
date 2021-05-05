@@ -6,7 +6,8 @@
  * In this module we introduce a generalization to algebraic data types required to deal with generic patameters.
  */
 
-import { identity } from "@effect-ts/core/Function"
+import { identity, pipe } from "@effect-ts/core/Function"
+import { matchTag } from "@effect-ts/core/Utils"
 
 /**
  * Segment:
@@ -20,7 +21,13 @@ import { identity } from "@effect-ts/core/Function"
  * We would like to port over the previous module Expr<number> to a more general Expr<A> having the Math functions
  * restricted to Expr<number>
  */
-export type Expr<A> = NumericValue<A>
+export type Expr<A> =
+  | NumericValue<A>
+  | StringValue<A>
+  | Add<A>
+  | Sub<A>
+  | Mul<A>
+  | Div<A>
 
 export class StringValue<A> {
   readonly _tag = "StringValue"
@@ -72,12 +79,54 @@ export function numericValue(value: number): Expr<number> {
   return new NumericValue(value, identity)
 }
 
+export function stringValue(value: string): Expr<string> {
+  return new StringValue(value, identity)
+}
+
+export function add(right: Expr<number>) {
+  return (left: Expr<number>): Expr<number> => new Add(left, right, identity)
+}
+
+export function sub(right: Expr<number>) {
+  return (left: Expr<number>): Expr<number> => new Sub(left, right, identity)
+}
+
+export function mul(right: Expr<number>) {
+  return (left: Expr<number>): Expr<number> => new Mul(left, right, identity)
+}
+
+export function div(right: Expr<number>) {
+  return (left: Expr<number>): Expr<number> => new Div(left, right, identity)
+}
+
+export const program = pipe(
+  numericValue(2),
+  add(numericValue(3)),
+  sub(numericValue(4)),
+  mul(numericValue(2)),
+  div(numericValue(5))
+)
+
+export const program2 = pipe(stringValue("2"))
+
 /**
  * Exercise:
  *
  * Implement the evaluate function
  */
-export declare function evaluate<A>(params: Expr<A>): A
+export function evaluate<A>(params: Expr<A>): A {
+  return pipe(
+    params,
+    matchTag({
+      Add: ({ _A, op1, op2 }) => _A(evaluate(op1) + evaluate(op2)),
+      Sub: ({ _A, op1, op2 }) => _A(evaluate(op1) - evaluate(op2)),
+      Div: ({ _A, op1, op2 }) => _A(evaluate(op1) / evaluate(op2)),
+      Mul: ({ _A, op1, op2 }) => _A(evaluate(op1) * evaluate(op2)),
+      NumericValue: ({ _A, value }) => _A(value),
+      StringValue: ({ _A, value }) => _A(value)
+    })
+  )
+}
 
 /**
  * Exercise:
