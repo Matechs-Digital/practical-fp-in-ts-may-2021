@@ -67,21 +67,35 @@ export interface Parser<I, A> {
 }
 
 export function parse<I, A>(self: Schema<I, A>): Parser<I, A> {
-  return pipe(
-    self,
-    matchTag({
-      SchemaNumber: ({ _A }) => (u: I) =>
+  switch (self._tag) {
+    case "SchemaNumber": {
+      return (u: I) =>
         typeof u === "number"
-          ? E.right(_A(u))
-          : E.left(`was expecting a number but got ${JSON.stringify(u)}`),
-      SchemaString: ({ _A }) => (u: I) =>
+          ? E.right(self._A(u))
+          : E.left(`was expecting a number but got ${JSON.stringify(u)}`)
+    }
+    case "SchemaString": {
+      return (u: I) =>
         typeof u === "string"
-          ? E.right(_A(u))
-          : E.left(`was expecting a string but got ${JSON.stringify(u)}`),
-      SchemaUnknown: ({ _A }) => (u: I) => E.right(_A(u)),
-      SchemaCompose: () => hole()
-    })
-  )
+          ? E.right(self._A(u))
+          : E.left(`was expecting a string but got ${JSON.stringify(u)}`)
+    }
+    case "SchemaUnknown": {
+      return (u: I) => E.right(self._A(u))
+    }
+    case "SchemaCompose": {
+      return self.use((self, that) => {
+        const parseSelf = parse(self)
+        const parseThat = parse(that)
+
+        return (u: I) =>
+          pipe(
+            parseSelf(u),
+            E.chain((t) => parseThat(t))
+          )
+      })
+    }
+  }
 }
 
 /**
