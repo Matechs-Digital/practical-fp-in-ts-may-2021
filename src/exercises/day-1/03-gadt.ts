@@ -28,6 +28,8 @@ export type Expr<A> =
   | Sub<A>
   | Mul<A>
   | Div<A>
+  | Concat<A>
+  | Stringify<A>
 
 export class StringValue<A> {
   readonly _tag = "StringValue"
@@ -75,6 +77,27 @@ export class Div<A> {
   ) {}
 }
 
+export class Concat<A> {
+  readonly _tag = "Concat"
+  constructor(
+    readonly op1: Expr<string>,
+    readonly op2: Expr<string>,
+    readonly _A: (a: string) => A
+  ) {}
+}
+
+export class Stringify<A> {
+  readonly _tag = "Stringify"
+  constructor(readonly op: Expr<number>, readonly _A: (a: string) => A) {}
+}
+
+export const concat = (op2: Expr<string>) => (op1: Expr<string>): Expr<string> =>
+  new Concat(op1, op2, identity)
+
+export function stringify(op: Expr<number>): Expr<string> {
+  return new Stringify(op, identity)
+}
+
 export function numericValue(value: number): Expr<number> {
   return new NumericValue(value, identity)
 }
@@ -99,43 +122,13 @@ export function div(right: Expr<number>) {
   return (left: Expr<number>): Expr<number> => new Div(left, right, identity)
 }
 
-export const program = pipe(
-  numericValue(2),
-  add(numericValue(3)),
-  sub(numericValue(4)),
-  mul(numericValue(2)),
-  div(numericValue(5))
-)
-
-export const program2 = pipe(stringValue("2"))
-
-/**
- * Exercise:
- *
- * Implement the evaluate function
- */
-export function evaluate<A>(params: Expr<A>): A {
-  return pipe(
-    params,
-    matchTag({
-      Add: ({ _A, op1, op2 }) => _A(evaluate(op1) + evaluate(op2)),
-      Sub: ({ _A, op1, op2 }) => _A(evaluate(op1) - evaluate(op2)),
-      Div: ({ _A, op1, op2 }) => _A(evaluate(op1) / evaluate(op2)),
-      Mul: ({ _A, op1, op2 }) => _A(evaluate(op1) * evaluate(op2)),
-      NumericValue: ({ _A, value }) => _A(value),
-      StringValue: ({ _A, value }) => _A(value)
-    })
-  )
-}
-
 /**
  * Exercise:
  *
  * Extend the Expr GADT to support:
- * 1) StringValue (Expr<string>)
+ *
  * 2) Concat (that concatenates 2 Expr<string>)
  * 3) Stringify (that converts Expr<number> into Expr<string>)
- *
  * Updating the interpreter as you go through.
  */
 
@@ -144,3 +137,33 @@ export function evaluate<A>(params: Expr<A>): A {
  *
  * Write a program that uses the new primitives and test its behaviour
  */
+
+/**
+ * Exercise:
+ *
+ * Implement the evaluate function
+ */
+
+export function evaluate<A>(expr: Expr<A>): A {
+  return pipe(
+    expr,
+    matchTag({
+      Add: ({ _A, op1, op2 }) => _A(evaluate(op1) + evaluate(op2)),
+      Sub: ({ _A, op1, op2 }) => _A(evaluate(op1) - evaluate(op2)),
+      Mul: ({ _A, op1, op2 }) => _A(evaluate(op1) * evaluate(op2)),
+      Div: ({ _A, op1, op2 }) => _A(evaluate(op1) / evaluate(op2)),
+      NumericValue: ({ _A, value }) => _A(value),
+      StringValue: ({ _A, value }) => _A(value),
+      Concat: ({ _A, op1, op2 }) => _A(evaluate(op1) + evaluate(op2)),
+      Stringify: ({ _A, op }) => _A(`${evaluate(op)}`)
+    })
+  )
+}
+
+export const program: Expr<string> = pipe(
+  numericValue(3),
+  add(numericValue(9)),
+  div(numericValue(4)),
+  stringify,
+  concat(stringValue("pizza"))
+)
