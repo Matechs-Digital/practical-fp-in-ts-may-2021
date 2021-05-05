@@ -7,7 +7,7 @@
  */
 
 import * as E from "@effect-ts/core/Either"
-import { hole, identity, pipe } from "@effect-ts/system/Function"
+import { flow, identity, pipe } from "@effect-ts/system/Function"
 import { matchTag } from "@effect-ts/system/Utils"
 
 /**
@@ -84,16 +84,7 @@ export function parse<I, A>(self: Schema<I, A>): Parser<I, A> {
       return (u: I) => E.right(self._A(u))
     }
     case "SchemaCompose": {
-      return self.use((self, that) => {
-        const parseSelf = parse(self)
-        const parseThat = parse(that)
-
-        return (u: I) =>
-          pipe(
-            parseSelf(u),
-            E.chain((t) => parseThat(t))
-          )
-      })
+      return self.use((self, that) => flow(parse(self), E.chain(parse(that))))
     }
   }
 }
@@ -116,7 +107,7 @@ export function guard<I, A>(self: Schema<I, A>): Guard<A> {
       SchemaString: () => (_: unknown): _ is A =>
         typeof _ === "string" ? true : false,
       SchemaUnknown: () => (_: unknown): _ is A => true,
-      SchemaCompose: () => hole()
+      SchemaCompose: ({ use }) => use((_, that) => guard(that))
     })
   )
 }
