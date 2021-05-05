@@ -7,7 +7,7 @@
  */
 
 import * as E from "@effect-ts/core/Either"
-import { identity, pipe } from "@effect-ts/system/Function"
+import { hole, identity, pipe } from "@effect-ts/system/Function"
 import { matchTag } from "@effect-ts/system/Utils"
 
 /**
@@ -23,7 +23,11 @@ import { matchTag } from "@effect-ts/system/Utils"
  * 2) number values
  * 3) uknown values
  */
-export type Schema<I, A> = SchemaString<I, A> | SchemaNumber<I, A> | SchemaUnknown<I, A>
+export type Schema<I, A> =
+  | SchemaString<I, A>
+  | SchemaNumber<I, A>
+  | SchemaUnknown<I, A>
+  | SchemaCompose<I, A>
 
 export class SchemaString<I, A> {
   readonly _tag = "SchemaString"
@@ -46,6 +50,13 @@ export class SchemaUnknown<I, A> {
 
 export const unknown: Schema<unknown, unknown> = new SchemaUnknown(identity, identity)
 
+export class SchemaCompose<I, A> {
+  readonly _tag = "SchemaCompose"
+  constructor(
+    readonly use: <X>(go: <T>(self: Schema<I, T>, that: Schema<T, A>) => X) => X
+  ) {}
+}
+
 /**
  * Exercise:
  *
@@ -59,15 +70,16 @@ export function parse<I, A>(self: Schema<I, A>): Parser<I, A> {
   return pipe(
     self,
     matchTag({
-      SchemaNumber: ({ _A }) => (u: unknown) =>
+      SchemaNumber: ({ _A }) => (u: I) =>
         typeof u === "number"
           ? E.right(_A(u))
           : E.left(`was expecting a number but got ${JSON.stringify(u)}`),
-      SchemaString: ({ _A }) => (u: unknown) =>
+      SchemaString: ({ _A }) => (u: I) =>
         typeof u === "string"
           ? E.right(_A(u))
           : E.left(`was expecting a string but got ${JSON.stringify(u)}`),
-      SchemaUnknown: ({ _A }) => (u: unknown) => E.right(_A(u))
+      SchemaUnknown: ({ _A }) => (u: I) => E.right(_A(u)),
+      SchemaCompose: () => hole()
     })
   )
 }
@@ -89,7 +101,8 @@ export function guard<I, A>(self: Schema<I, A>): Guard<A> {
         typeof _ === "number" ? true : false,
       SchemaString: () => (_: unknown): _ is A =>
         typeof _ === "string" ? true : false,
-      SchemaUnknown: () => (_: unknown): _ is A => true
+      SchemaUnknown: () => (_: unknown): _ is A => true,
+      SchemaCompose: () => hole()
     })
   )
 }
