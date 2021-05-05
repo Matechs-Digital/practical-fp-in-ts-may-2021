@@ -57,10 +57,10 @@ Don't forget to join our Discord community: https://discord.com/invite/drVHpNgqD
 
 ## Schedule
 
-- 10:00 - 12:00 : first session
+- 10:00 - 12:00 : 1st session
 - 12:00 - 13:00 : lunch break
-- 13:00 - 14:45 : second session
+- 13:00 - 14:45 : 2nd session
 - 14:45 - 15:00 : coffee break
-- 15:00 - 16:45 : third session
+- 15:00 - 16:45 : 3rd session
 - 16:45 - 17:00 : coffee break
-- 17:00 - 18:00 : third session
+- 17:00 - 18:00 : 4th session
