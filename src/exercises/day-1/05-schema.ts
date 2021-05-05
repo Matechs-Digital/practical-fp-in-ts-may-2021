@@ -30,32 +30,46 @@ export type Schema<I, A> =
   | SchemaCompose<I, A>
   | SchemaNumberString<I, A>
 
-export class SchemaString<I, A> {
+abstract class SchemaSyntax<I, A> {
+  readonly [">>>"] = <B>(that: Schema<A, B>): Schema<I, B> =>
+    // @ts-expect-error
+    compose(that)(this)
+}
+
+export class SchemaString<I, A> extends SchemaSyntax<I, A> {
   readonly _tag = "SchemaString"
-  constructor(readonly _A: (_: string) => A, readonly _I: (_: I) => unknown) {}
+  constructor(readonly _A: (_: string) => A, readonly _I: (_: I) => unknown) {
+    super()
+  }
 }
 
 export const string: Schema<unknown, string> = new SchemaString(identity, identity)
 
-export class SchemaNumber<I, A> {
+export class SchemaNumber<I, A> extends SchemaSyntax<I, A> {
   readonly _tag = "SchemaNumber"
-  constructor(readonly _A: (_: number) => A, readonly _I: (_: I) => unknown) {}
+  constructor(readonly _A: (_: number) => A, readonly _I: (_: I) => unknown) {
+    super()
+  }
 }
 
 export const number: Schema<unknown, number> = new SchemaNumber(identity, identity)
 
-export class SchemaUnknown<I, A> {
+export class SchemaUnknown<I, A> extends SchemaSyntax<I, A> {
   readonly _tag = "SchemaUnknown"
-  constructor(readonly _A: (_: unknown) => A, readonly _I: (_: I) => unknown) {}
+  constructor(readonly _A: (_: unknown) => A, readonly _I: (_: I) => unknown) {
+    super()
+  }
 }
 
 export const unknown: Schema<unknown, unknown> = new SchemaUnknown(identity, identity)
 
-export class SchemaCompose<I, A> {
+export class SchemaCompose<I, A> extends SchemaSyntax<I, A> {
   readonly _tag = "SchemaCompose"
   constructor(
     readonly use: <X>(go: <T>(self: Schema<I, T>, that: Schema<T, A>) => X) => X
-  ) {}
+  ) {
+    super()
+  }
 }
 
 export function compose<A, B>(that: Schema<A, B>) {
@@ -63,17 +77,19 @@ export function compose<A, B>(that: Schema<A, B>) {
     new SchemaCompose((go) => go(self, that))
 }
 
-export class SchemaNumberString<I, A> {
+export class SchemaNumberString<I, A> extends SchemaSyntax<I, A> {
   readonly _tag = "SchemaNumberString"
-  constructor(readonly _A: (_: number) => A, readonly _I: (_: I) => string) {}
+  constructor(readonly _A: (_: number) => A, readonly _I: (_: I) => string) {
+    super()
+  }
 }
 
-export const numberString: Schema<string, number> = new SchemaNumberString(
+export const stringNumber: Schema<string, number> = new SchemaNumberString(
   identity,
   identity
 )
 
-export const unknownStringNumber = pipe(string, compose(numberString))
+export const unknownStringNumber = string[">>>"](stringNumber)
 
 /**
  * Exercise:
