@@ -62,7 +62,7 @@ export function parse<A>(self: Schema<A>): Parser<A> {
       SchemaNumber: ({ _A }) => (u: unknown) =>
         typeof u === "number"
           ? E.right(_A(u))
-          : E.left(`was expecting a string but got ${JSON.stringify(u)}`),
+          : E.left(`was expecting a number but got ${JSON.stringify(u)}`),
       SchemaString: ({ _A }) => (u: unknown) =>
         typeof u === "string"
           ? E.right(_A(u))
