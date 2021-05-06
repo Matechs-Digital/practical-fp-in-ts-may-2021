@@ -4,13 +4,13 @@ import * as E from "@effect-ts/core/Either"
 describe("Schema", () => {
   it("parse number", () => {
     expect(S.parse(S.number)("")).toEqual(
-      E.left('the value "" doesn\'t satisfy the refinment')
+      E.left('the value "" doesn\'t satisfy the refinement')
     )
     expect(S.parse(S.number)(1)).toEqual(E.right(1))
   })
   it("parse number from string", () => {
     expect(S.parse(S.unknownStringNumber)(1)).toEqual(
-      E.left("the value 1 doesn't satisfy the refinment")
+      E.left("the value 1 doesn't satisfy the refinement")
     )
     expect(S.parse(S.unknownStringNumber)("a")).toEqual(
       E.left("was expecting a number encoded as a string got: a")

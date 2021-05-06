@@ -150,7 +150,9 @@ export function parse<I, A>(self: Schema<I, A>): Parser<I, A> {
             E.chain_(parseSelf(u), (a) =>
               ref(a)
                 ? E.right(_A(a))
-                : E.left(`the value ${JSON.stringify(a)} doesn't satisfy the refinment`)
+                : E.left(
+                    `the value ${JSON.stringify(a)} doesn't satisfy the refinement`
+                  )
             )
         }
       )
