@@ -26,7 +26,7 @@ import { pipe } from "@effect-ts/system/Function"
  * - Fail => represents failure
  * - Access => represents evironment access
  */
-export type IO<R, E, A> = Succeed<R, E, A>
+export type IO<R, E, A> = Succeed<R, E, A> | Fail<R, E, A>
 
 /**
  * Write tests to assert that everythig works as expected while doing the exercises.
@@ -40,6 +40,9 @@ export function run<R>(r: R): <E, A>(self: IO<R, E, A>) => E.Either<E, A> {
     switch (self._tag) {
       case "Succeed": {
         return E.right(self.value)
+      }
+      case "Fail": {
+        return E.left(self.error)
       }
       default: {
         return hole()
@@ -81,6 +84,12 @@ export function succeed<A>(value: A): IO<unknown, never, A> {
  */
 export class Fail<R, E, A> {
   readonly _tag = "Fail"
+
+  constructor(
+    readonly error: E,
+    readonly _A: (_: never) => A,
+    readonly _R: (_: R) => unknown
+  ) {}
 }
 
 /**
@@ -88,7 +97,9 @@ export class Fail<R, E, A> {
  *
  * An effect that always fail with an error E
  */
-export declare function fail<E>(error: E): IO<unknown, E, never>
+export function fail<E>(error: E): IO<unknown, E, never> {
+  return new Fail(error, identity, identity)
+}
 
 /**
  * Exercise:
