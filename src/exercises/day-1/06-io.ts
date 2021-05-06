@@ -50,6 +50,15 @@ export function run<R>(r: R): <E, A>(self: IO<R, E, A>) => E.Either<E, A> {
       case "Access": {
         return E.right(self.env(r))
       }
+      case "Chain": {
+        return self.use((fa, afb) => {
+          const result = run(r)(fa)
+          if (result._tag === "Left") {
+            return E.left(result.left)
+          }
+          return run(r)(afb(result.right))
+        })
+      }
       default: {
         return hole()
       }
