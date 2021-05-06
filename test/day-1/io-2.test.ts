@@ -1,4 +1,4 @@
-import * as IO from "@app/exercises/day-1/06-io"
+import * as IO from "@app/exercises/day-2/02-io"
 import * as E from "@effect-ts/core/Either"
 import { pipe } from "@effect-ts/system/Function"
 
