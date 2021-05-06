@@ -8,6 +8,7 @@
 
 import * as E from "@effect-ts/core/Either"
 import type { Refinement } from "@effect-ts/core/Function"
+import { hole } from "@effect-ts/core/Function"
 import { flow, identity, pipe } from "@effect-ts/system/Function"
 import { matchTag } from "@effect-ts/system/Utils"
 
@@ -29,6 +30,7 @@ export type Schema<I, A> =
   | SchemaCompose<I, A>
   | SchemaNumberString<I, A>
   | SchemaRefinement<I, A>
+  | StructSchema<I, A>
 
 abstract class SchemaSyntax<I, A> {
   readonly [">>>"] = <B>(that: Schema<A, B>): Schema<I, B> =>
@@ -157,6 +159,42 @@ export function parse<I, A>(self: Schema<I, A>): Parser<I, A> {
         }
       )
     }
+    case "StructSchema": {
+      return self.use((props, _A, _I) => {
+        const parsers = {} as {
+          [k in keyof typeof props]: Parser<unknown, ExtractA<typeof props[k]>>
+        }
+        const keys = Object.keys(props) as (keyof typeof props)[]
+        for (const k of keys) {
+          parsers[k] = parse(props[k])
+        }
+        return (i: I) => {
+          const u = _I(i)
+          if (typeof u !== "object") {
+            return E.left(`expected object received: ${typeof u}`)
+          }
+          if (u == null) {
+            return E.left(`expected object received: null`)
+          }
+          const parsed = {} as {
+            [k in keyof typeof props]: ExtractA<typeof props[k]>
+          }
+          for (const k of keys) {
+            if (k in u) {
+              const v = parsers[k](u[k as keyof typeof u])
+              if (E.isLeft(v)) {
+                return v
+              } else {
+                parsed[k] = v.right
+              }
+            } else {
+              return E.left(`missing field ${k} in ${JSON.stringify(u)}`)
+            }
+          }
+          return E.right(_A(parsed))
+        }
+      })
+    }
   }
 }
 
@@ -248,9 +286,24 @@ export type ExtractA<S extends Schema<unknown, any>> = [S] extends [
   ? A
   : never
 
-export declare function struct<
+export function struct<
   Props extends { readonly [k in keyof Props]: Schema<unknown, any> }
->(_: Props): Schema<unknown, { readonly [k in keyof Props]: ExtractA<Props[k]> }>
+>(props: Props): Schema<unknown, { readonly [k in keyof Props]: ExtractA<Props[k]> }> {
+  return new StructSchema((go) => go(props, identity, identity))
+}
+
+class StructSchema<I, A> {
+  readonly _tag = "StructSchema"
+  constructor(
+    readonly use: <X>(
+      f: <Props extends { readonly [k in keyof Props]: Schema<unknown, any> }>(
+        props: Props,
+        _A: (a: { readonly [k in keyof Props]: ExtractA<Props[k]> }) => A,
+        _I: (_: I) => unknown
+      ) => X
+    ) => X
+  ) {}
+}
 
 // const Person = struct({
 //   firstName: string,
