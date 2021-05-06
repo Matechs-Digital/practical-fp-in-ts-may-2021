@@ -23,4 +23,13 @@ describe("IO", () => {
     )
     expect(res).toEqual(E.left("error: 1"))
   })
+  it("map", () => {
+    const res = pipe(
+      IO.access(({ fs }: { fs: () => string }) => fs()),
+      IO.map((str) => `${str} :)`),
+      IO.map((str) => str + "!"),
+      IO.run({ fs: () => "test" })
+    )
+    expect(res).toEqual(E.right("test :)!"))
+  })
 })
