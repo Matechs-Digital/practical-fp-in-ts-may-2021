@@ -196,7 +196,7 @@ export function map<A, A1>(
 /**
  * Implement the costant `unit`
  */
-export declare const unit: IO<unknown, never, void>
+export const unit: IO<unknown, never, void> = succeed(void 0)
 
 /**
  * Implement the constructor `succeedWith`
