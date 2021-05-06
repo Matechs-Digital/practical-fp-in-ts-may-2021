@@ -26,7 +26,7 @@ import { pipe } from "@effect-ts/system/Function"
  * - Fail => represents failure
  * - Access => represents evironment access
  */
-export type IO<R, E, A> = Succeed<R, E, A> | Fail<R, E, A>
+export type IO<R, E, A> = Succeed<R, E, A> | Fail<R, E, A> | Access<R, E, A>
 
 /**
  * Write tests to assert that everythig works as expected while doing the exercises.
@@ -43,6 +43,9 @@ export function run<R>(r: R): <E, A>(self: IO<R, E, A>) => E.Either<E, A> {
       }
       case "Fail": {
         return E.left(self.error)
+      }
+      case "Access": {
+        return E.right(self.env(r))
       }
       default: {
         return hole()
@@ -109,6 +112,7 @@ export function fail<E>(error: E): IO<unknown, E, never> {
  */
 export class Access<R, E, A> {
   readonly _tag = "Access"
+  constructor(readonly env: (_: R) => A, readonly _E: (_: never) => E) {}
 }
 
 /**
@@ -116,7 +120,9 @@ export class Access<R, E, A> {
  *
  * An effect that uses f to access the environment in order to produce a value A
  */
-export declare function access<R, A>(accessFn: (r: R) => A): IO<R, never, A>
+export function access<R, A>(accessFn: (r: R) => A): IO<R, never, A> {
+  return new Access(accessFn, identity)
+}
 
 /**
  * Check the variance of R and E
