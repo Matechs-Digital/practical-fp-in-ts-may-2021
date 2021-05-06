@@ -7,7 +7,8 @@
  */
 
 import * as E from "@effect-ts/core/Either"
-import { flow, hole, identity, pipe } from "@effect-ts/system/Function"
+import type { Refinement } from "@effect-ts/core/Function"
+import { flow, identity, pipe } from "@effect-ts/system/Function"
 import { matchTag } from "@effect-ts/system/Utils"
 
 /**
@@ -132,17 +133,18 @@ export function parse<I, A>(self: Schema<I, A>): Parser<I, A> {
       return self.use((self, that) => flow(parse(self), E.chain(parse(that))))
     }
     case "SchemaRefinement": {
-      self.use((a, b) => {
-        return 1
-      })
+      return self.use((self: unknown, ref: unknown) => {
+        const parseSelf = parse(self as Schema<I, unknown>)
 
-      return hole()
+        return (u: I) =>
+          E.chain_(parseSelf(u), (a) =>
+            (ref as Refinement<unknown, A>)(a)
+              ? E.right(a as A)
+              : E.left(`the value ${JSON.stringify(a)} doesn't satisfy the refinment`)
+          )
+      })
     }
   }
-}
-
-export interface Refinement<A, B extends A> {
-  (a: A): a is B
 }
 
 export class SchemaRefinement<I, A> extends SchemaSyntax<I, A> {
@@ -151,8 +153,8 @@ export class SchemaRefinement<I, A> extends SchemaSyntax<I, A> {
     readonly use: <X>(
       go: <T0, T extends T0>(
         self: Schema<I, T0>,
-        ref: Refinement<T0, T>
-        //_A: (_: T) => A
+        ref: Refinement<T0, T>,
+        _A: (_: T) => A
       ) => X
     ) => X
   ) {
@@ -181,7 +183,12 @@ export function guard<I, A>(self: Schema<I, A>): Guard<A> {
         typeof _ === "string" ? true : false,
       SchemaUnknown: () => (_: unknown): _ is A => true,
       SchemaCompose: ({ use }) => use((_, that) => guard(that)),
-      SchemaRefinement: () => hole()
+      SchemaRefinement: ({ use }) =>
+        use((self: unknown, ref: unknown) => {
+          const guardSelf = guard(self as any)
+
+          return (u: unknown): u is A => guardSelf(u) && (ref as any)(u)
+        })
     })
   )
 }
@@ -191,7 +198,7 @@ export function refine<I, A, B extends A>(
   self: Schema<I, A>,
   refinement: Refinement<A, B>
 ): Schema<I, B> {
-  return new SchemaRefinement((go) => go(self, refinement))
+  return new SchemaRefinement((go) => go(self, refinement, identity))
 }
 
 export const string2 = refine(unknown, (u): u is string => typeof u === "string")
