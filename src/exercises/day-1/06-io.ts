@@ -187,9 +187,11 @@ export function chain<A, R1, E1, A1>(
 /**
  * Implement the map function in terms of chain & succeed
  */
-export declare function map<A, A1>(
-  chainFn: (a: A) => A1
-): <R, E>(self: IO<R, E, A>) => IO<R, E, A1>
+export function map<A, A1>(
+  mapFn: (a: A) => A1
+): <R, E>(self: IO<R, E, A>) => IO<R, E, A1> {
+  return chain((a) => succeed(mapFn(a)))
+}
 
 /**
  * Implement the costant `unit`
