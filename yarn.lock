@@ -311,12 +311,12 @@
     exec-sh "^0.3.2"
     minimist "^1.2.0"
 
-"@effect-ts/core@^0.37.5":
-  version "0.37.5"
-  resolved "https://registry.yarnpkg.com/@effect-ts/core/-/core-0.37.5.tgz#b183190e411537ce24e5c173abbc5110bb893a52"
-  integrity sha512-u+qELJSaBhPFzLI3y91g9unruHWx09VFClQ5CIZmtTOGxR6BrjjaheBapBgBT6gVEPdKim/4RFnIbG/H05Idew==
+"@effect-ts/core@^0.37.6":
+  version "0.37.6"
+  resolved "https://registry.yarnpkg.com/@effect-ts/core/-/core-0.37.6.tgz#e2d79b2ed9f96c76e2119ee16b9642b6ebf7622b"
+  integrity sha512-G6wy/Y6nPTA3gkYPlDHs5PBsZM2QBL3I2tnGbupY2nzrCkIllysjJg+IWIvh/7A2VAe9utlbyguId4xovrBg7A==
   dependencies:
-    "@effect-ts/system" "^0.34.5"
+    "@effect-ts/system" "^0.34.6"
 
 "@effect-ts/jest@^0.25.0":
   version "0.25.0"
@@ -328,10 +328,10 @@
   resolved "https://registry.yarnpkg.com/@effect-ts/node/-/node-0.23.0.tgz#07128ef535dca159e6b82fc99e9a7442b1331c3f"
   integrity sha512-K0ZNIzceLkFMySPWHfmLp6qSPif2vfCxgkLKl74xXfVLFcXZEN0C4yyWTjNd48Sb+Tt03fcG00wUgGDMs7Lj2Q==
 
-"@effect-ts/system@^0.34.5":
-  version "0.34.5"
-  resolved "https://registry.yarnpkg.com/@effect-ts/system/-/system-0.34.5.tgz#4b44aaeb5df1c2d17652a9a2a8258cc6d5050e20"
-  integrity sha512-1t+8hNzWdn3AGIzaTQqyBQETJbvn3DYLbSBH4AItxT1IHivKJscIXKSWfGP2sa2LfTtSoXhBc8Mic5YoFG/n6w==
+"@effect-ts/system@^0.34.6":
+  version "0.34.6"
+  resolved "https://registry.yarnpkg.com/@effect-ts/system/-/system-0.34.6.tgz#0046989238630e89919a3613fea376b9ff2f31e6"
+  integrity sha512-RlvczbGlKLtkRYvslp2+f9pQ9+3UXd2Q7OvXKPkw40zz0GYvr8qSiXwdNdn0YCyhu8y5m+7GpmJ19CqlX1d4ew==
 
 "@effect-ts/tracing-plugin@^0.10.1":
   version "0.10.1"
@@ -652,10 +652,15 @@
   resolved "https://registry.yarnpkg.com/@types/json5/-/json5-0.0.29.tgz#ee28707ae94e11d2b827bcbe5270bcea7f3e71ee"
   integrity sha1-7ihweulOEdK4J7y+UnC86n8+ce4=
 
-"@types/node@*", "@types/node@^15.0.1":
+"@types/node@*":
   version "15.0.1"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-15.0.1.tgz#ef34dea0881028d11398be5bf4e856743e3dc35a"
   integrity sha512-TMkXt0Ck1y0KKsGr9gJtWGjttxlZnnvDtphxUOSd0bfaR6Q1jle+sPvrzNR1urqYTWMinoKvjKfXUGsumaO1PA==
+
+"@types/node@^15.0.2":
+  version "15.0.2"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-15.0.2.tgz#51e9c0920d1b45936ea04341aa3e2e58d339fb67"
+  integrity sha512-p68+a+KoxpoB47015IeYZYRrdqMUcpbK8re/zpFB8Ld46LHC1lPEbp3EXgkEhAYEcPvjJF6ZO+869SQ0aH1dcA==
 
 "@types/normalize-package-data@^2.4.0":
   version "2.4.0"
@@ -4489,10 +4494,10 @@ tr46@^2.0.2:
   dependencies:
     punycode "^2.1.1"
 
-ts-jest@^26.5.5:
-  version "26.5.5"
-  resolved "https://registry.yarnpkg.com/ts-jest/-/ts-jest-26.5.5.tgz#e40481b6ee4dd162626ba481a2be05fa57160ea5"
-  integrity sha512-7tP4m+silwt1NHqzNRAPjW1BswnAhopTdc2K3HEkRZjF0ZG2F/e/ypVH0xiZIMfItFtD3CX0XFbwPzp9fIEUVg==
+ts-jest@^26.5.6:
+  version "26.5.6"
+  resolved "https://registry.yarnpkg.com/ts-jest/-/ts-jest-26.5.6.tgz#c32e0746425274e1dfe333f43cd3c800e014ec35"
+  integrity sha512-rua+rCP8DxpA8b4DQD/6X2HQS8Zy/xzViVYfEs2OQu68tkCuKLV0Md8pmX55+W24uRIyAsf/BajRfxOs+R2MKA==
   dependencies:
     bs-logger "0.x"
     buffer-from "1.x"
