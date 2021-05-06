@@ -8,7 +8,6 @@
 
 import * as E from "@effect-ts/core/Either"
 import type { Refinement } from "@effect-ts/core/Function"
-import { hole } from "@effect-ts/core/Function"
 import { flow, identity, pipe } from "@effect-ts/system/Function"
 import { matchTag } from "@effect-ts/system/Utils"
 
@@ -222,7 +221,35 @@ export function guard<I, A>(self: Schema<I, A>): Guard<A> {
             const guardSelf = guard(self)
             return (u: unknown): u is A => guardSelf(u) && (ref as any)(u)
           }
-        )
+        ),
+      StructSchema: ({ use }) =>
+        use((props, _A, _I) => {
+          const guards = {} as {
+            [k in keyof typeof props]: Guard<ExtractA<typeof props[k]>>
+          }
+          const keys = Object.keys(props) as (keyof typeof props)[]
+          for (const k of keys) {
+            guards[k] = guard(props[k])
+          }
+          return (u: unknown) => {
+            if (typeof u !== "object") {
+              return false
+            }
+            if (u == null) {
+              return false
+            }
+            for (const k of keys) {
+              if (k in u) {
+                if (!guards[k](u[k as keyof typeof u])) {
+                  return false
+                }
+              } else {
+                return false
+              }
+            }
+            return true
+          }
+        })
     })
   )
 }
@@ -292,7 +319,7 @@ export function struct<
   return new StructSchema((go) => go(props, identity, identity))
 }
 
-class StructSchema<I, A> {
+export class StructSchema<I, A> {
   readonly _tag = "StructSchema"
   constructor(
     readonly use: <X>(
@@ -304,8 +331,3 @@ class StructSchema<I, A> {
     ) => X
   ) {}
 }
-
-// const Person = struct({
-//   firstName: string,
-//   lastName: string
-// })

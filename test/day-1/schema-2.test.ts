@@ -1,6 +1,14 @@
 import * as S from "@app/exercises/day-1/05-schema"
 import * as E from "@effect-ts/core/Either"
 
+const Person = S.struct({
+  firstName: S.string,
+  lastName: S.string
+})
+
+const parsePerson = S.parse(Person)
+const guardPerson = S.guard(Person)
+
 describe("Schema", () => {
   it("parse number", () => {
     expect(S.parse(S.number)("")).toEqual(
