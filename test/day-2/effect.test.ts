@@ -1,4 +1,4 @@
-import * as App from "@app/exercises/day-2/01-effect"
+import * as App from "@app/exercises/day-3/01-effect"
 import * as T from "@effect-ts/core/Effect"
 import { pretty } from "@effect-ts/core/Effect/Cause"
 import * as Ex from "@effect-ts/core/Effect/Exit"

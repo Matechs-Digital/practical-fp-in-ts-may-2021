@@ -1,4 +1,4 @@
-import * as S from "@app/exercises/day-1/05-schema"
+import * as S from "@app/exercises/day-2/01-schema"
 import * as E from "@effect-ts/core/Either"
 
 const Person = S.struct({
