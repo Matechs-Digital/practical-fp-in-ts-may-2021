@@ -241,3 +241,18 @@ export function guard<I, A>(self: Schema<I, A>): Guard<A> {
  *
  * Add a method [">>>"] in schema to perform composition like: object[">>>"](struct({a: ...}))
  */
+
+export type ExtractA<S extends Schema<unknown, any>> = [S] extends [
+  Schema<unknown, infer A>
+]
+  ? A
+  : never
+
+export declare function struct<
+  Props extends { readonly [k in keyof Props]: Schema<unknown, any> }
+>(_: Props): Schema<unknown, { readonly [k in keyof Props]: ExtractA<Props[k]> }>
+
+// const Person = struct({
+//   firstName: string,
+//   lastName: string
+// })
