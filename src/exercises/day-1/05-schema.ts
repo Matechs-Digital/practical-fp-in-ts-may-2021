@@ -7,8 +7,7 @@
  */
 
 import * as E from "@effect-ts/core/Either"
-import type { Refinement } from "@effect-ts/system/Function"
-import { flow, identity, pipe } from "@effect-ts/system/Function"
+import { flow, hole, identity, pipe } from "@effect-ts/system/Function"
 import { matchTag } from "@effect-ts/system/Utils"
 
 /**
@@ -30,6 +29,7 @@ export type Schema<I, A> =
   | SchemaUnknown<I, A>
   | SchemaCompose<I, A>
   | SchemaNumberString<I, A>
+  | SchemaRefinement<I, A>
 
 abstract class SchemaSyntax<I, A> {
   readonly [">>>"] = <B>(that: Schema<A, B>): Schema<I, B> =>
@@ -131,6 +131,32 @@ export function parse<I, A>(self: Schema<I, A>): Parser<I, A> {
     case "SchemaCompose": {
       return self.use((self, that) => flow(parse(self), E.chain(parse(that))))
     }
+    case "SchemaRefinement": {
+      self.use((a, b) => {
+        return 1
+      })
+
+      return hole()
+    }
+  }
+}
+
+export interface Refinement<A, B extends A> {
+  (a: A): a is B
+}
+
+export class SchemaRefinement<I, A> extends SchemaSyntax<I, A> {
+  readonly _tag = "SchemaRefinement"
+  constructor(
+    readonly use: <X>(
+      go: <T0, T extends T0>(
+        self: Schema<I, T0>,
+        ref: Refinement<T0, T>
+        //_A: (_: T) => A
+      ) => X
+    ) => X
+  ) {
+    super()
   }
 }
 
@@ -154,16 +180,19 @@ export function guard<I, A>(self: Schema<I, A>): Guard<A> {
       SchemaString: () => (_: unknown): _ is A =>
         typeof _ === "string" ? true : false,
       SchemaUnknown: () => (_: unknown): _ is A => true,
-      SchemaCompose: ({ use }) => use((_, that) => guard(that))
+      SchemaCompose: ({ use }) => use((_, that) => guard(that)),
+      SchemaRefinement: () => hole()
     })
   )
 }
 
 // Refinement
-export declare function refine<I, A, B extends A>(
+export function refine<I, A, B extends A>(
   self: Schema<I, A>,
   refinement: Refinement<A, B>
-): Schema<I, B>
+): Schema<I, B> {
+  return new SchemaRefinement((go) => go(self, refinement))
+}
 
 export const string2 = refine(unknown, (u): u is string => typeof u === "string")
 
