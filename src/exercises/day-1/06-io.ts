@@ -1,5 +1,5 @@
 import * as E from "@effect-ts/core/Either"
-import { identity, pipe } from "@effect-ts/core/Function"
+import { hole, identity, pipe } from "@effect-ts/core/Function"
 
 /**
  * Graduation:
@@ -123,14 +123,14 @@ export type EOf = [XX] extends [IO<any, infer E, any>] ? E : never // should be 
 export class Fold<R, E, A> {
   readonly _tag = "Fold"
 
+  readonly _R!: (_: R) => void
+  readonly _E!: () => E
+  readonly _A!: () => A
+
   constructor(
-    readonly use: <X>(
-      f: <TE, TS>(_: {
-        readonly fx: IO<R, TE, TS>
-        readonly onError: (e: TE) => IO<R, E, A>
-        readonly onSuccess: (a: TS) => IO<R, E, A>
-      }) => X
-    ) => X
+    readonly fx: IO<any, any, any>,
+    readonly onError: (e: any) => IO<any, any, any>,
+    readonly onSuccess: (a: any) => IO<any, any, any>
   ) {}
 }
 
@@ -145,14 +145,7 @@ export class Fold<R, E, A> {
 export function chain<A, R1, E1, A1>(
   chainFn: (a: A) => IO<R1, E1, A1>
 ): <R, E>(self: IO<R, E, A>) => IO<R & R1, E | E1, A1> {
-  return (self) =>
-    new Fold((f) =>
-      f({
-        fx: self,
-        onError: fail,
-        onSuccess: chainFn
-      })
-    )
+  return (self) => new Fold(self, fail, chainFn)
 }
 
 /**
@@ -207,14 +200,7 @@ export function failWith<E>(f: () => E): IO<unknown, E, never> {
 export function catchAll<E, R1, E1, A1>(
   recoverFn: (e: E) => IO<R1, E1, A1>
 ): <R, A>(self: IO<R, E, A>) => IO<R & R1, E1, A | A1> {
-  return (self) =>
-    new Fold((f) =>
-      f({
-        fx: self,
-        onSuccess: succeed,
-        onError: recoverFn
-      })
-    )
+  return (self) => new Fold(self, recoverFn, succeed)
 }
 
 /**
@@ -266,28 +252,73 @@ export declare function provideSome<R, R0>(
  *
  * Describe how to implement recursive procedures in a stack safe manner
  */
+class FoldContFrame {
+  readonly _tag = "FoldContFrame"
+  constructor(
+    readonly onError: (u: any) => IO<any, any, any>,
+    readonly onSuccess: (u: any) => IO<any, any, any>
+  ) {}
+}
 
 export function run<R>(r: R): <E, A>(self: IO<R, E, A>) => E.Either<E, A> {
   return (self) => {
-    switch (self._tag) {
-      case "Succeed": {
-        return E.right(self.value)
-      }
-      case "Fail": {
-        return E.left(self.error)
-      }
-      case "Access": {
-        return E.right(self.env(r))
-      }
-      case "Fold": {
-        return self.use(({ fx, onError, onSuccess }) => {
-          const result = run(r)(fx)
+    type Stack = FoldContFrame[]
 
-          return run(r)(
-            E.isLeft(result) ? onError(result.left) : onSuccess(result.right)
-          )
-        })
+    const stack = [] as Stack
+
+    let result = undefined
+    let isError = false
+
+    // eslint-disable-next-line no-unused-labels, no-constant-condition
+    recursing: while (1) {
+      // eslint-disable-next-line no-unused-labels, no-constant-condition
+      pushing: while (1) {
+        switch (self._tag) {
+          case "Succeed": {
+            result = self.value
+            isError = false
+            break pushing
+          }
+          case "Fail": {
+            result = self.error
+            isError = true
+            break pushing
+          }
+          case "Access": {
+            result = self.env(r)
+            isError = false
+            break pushing
+          }
+          case "Fold": {
+            stack.push(new FoldContFrame(self.onError, self.onSuccess))
+            self = self.fx
+
+            continue pushing
+          }
+        }
+      }
+      // eslint-disable-next-line no-unused-labels, no-constant-condition
+      pulling: while (1) {
+        if (stack.length === 0) {
+          return isError ? E.left(result as any) : E.right(result as any)
+        }
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const nextCont = stack.pop()!
+        switch (nextCont._tag) {
+          case "FoldContFrame": {
+            if (isError) {
+              self = nextCont.onError(result)
+              isError = false
+              continue recursing
+            } else {
+              self = nextCont.onSuccess(result)
+              continue recursing
+            }
+          }
+        }
       }
     }
+
+    return hole()
   }
 }

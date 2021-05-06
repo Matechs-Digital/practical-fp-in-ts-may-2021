@@ -35,4 +35,13 @@ describe("IO", () => {
     )
     expect(res).toEqual(E.right("test :)!"))
   })
+  it("should recover", () => {
+    const res = pipe(
+      IO.access(({ fs }: { fs: () => string }) => fs()),
+      IO.chain((_) => IO.fail(`ERROR!`)),
+      IO.catchAll((_) => IO.succeed(`error: ${_}`)),
+      IO.run({ fs: () => "test" })
+    )
+    expect(res).toEqual(E.right("error: ERROR!"))
+  })
 })
