@@ -53,8 +53,8 @@ export function run<R>(r: R): <E, A>(self: IO<R, E, A>) => E.Either<E, A> {
       case "Chain": {
         return self.use((fa, afb) => {
           const result = run(r)(fa)
-          if (result._tag === "Left") {
-            return E.left(result.left)
+          if (E.isLeft(result)) {
+            return result
           }
           return run(r)(afb(result.right))
         })
