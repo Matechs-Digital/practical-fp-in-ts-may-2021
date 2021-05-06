@@ -141,16 +141,19 @@ export function parse<I, A>(self: Schema<I, A>): Parser<I, A> {
       return self.use((self, that) => flow(parse(self), E.chain(parse(that))))
     }
     case "SchemaRefinement": {
-      return self.use((self: unknown, ref: unknown) => {
-        const parseSelf = parse(self as Schema<I, unknown>)
+      return self.use(
+        // @ts-expect-error
+        (self, ref, _A) => {
+          const parseSelf = parse(self)
 
-        return (u: I) =>
-          E.chain_(parseSelf(u), (a) =>
-            (ref as Refinement<unknown, A>)(a)
-              ? E.right(a as A)
-              : E.left(`the value ${JSON.stringify(a)} doesn't satisfy the refinment`)
-          )
-      })
+          return (u: I) =>
+            E.chain_(parseSelf(u), (a) =>
+              ref(a)
+                ? E.right(_A(a))
+                : E.left(`the value ${JSON.stringify(a)} doesn't satisfy the refinment`)
+            )
+        }
+      )
     }
   }
 }
@@ -173,11 +176,13 @@ export function guard<I, A>(self: Schema<I, A>): Guard<A> {
       SchemaUnknown: () => (_: unknown): _ is A => true,
       SchemaCompose: ({ use }) => use((_, that) => guard(that)),
       SchemaRefinement: ({ use }) =>
-        use((self: unknown, ref: unknown) => {
-          const guardSelf = guard(self as any)
-
-          return (u: unknown): u is A => guardSelf(u) && (ref as any)(u)
-        })
+        use(
+          // @ts-expect-error
+          (self, ref, _A) => {
+            const guardSelf = guard(self)
+            return (u: unknown): u is A => guardSelf(u) && (ref as any)(u)
+          }
+        )
     })
   )
 }
