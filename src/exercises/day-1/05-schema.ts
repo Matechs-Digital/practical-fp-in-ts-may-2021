@@ -163,7 +163,7 @@ export function parse<I, A>(self: Schema<I, A>): Parser<I, A> {
         const parsers = {} as {
           [k in keyof typeof props]: Parser<unknown, ExtractA<typeof props[k]>>
         }
-        const keys = Object.keys(props) as (keyof typeof props)[]
+        const keys = Object.keys(props).sort() as (keyof typeof props)[]
         for (const k of keys) {
           parsers[k] = parse(props[k])
         }

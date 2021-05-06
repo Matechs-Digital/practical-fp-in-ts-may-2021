@@ -34,4 +34,23 @@ describe("Schema", () => {
     expect(S.guard(S.string)(1)).toBe(false)
   })
   it.todo("guards unknown")
+
+  it("parsePerson should parse a person", () => {
+    expect(parsePerson(0)).toEqual(E.left("expected object received: number"))
+    expect(parsePerson(null)).toEqual(E.left("expected object received: null"))
+    expect(parsePerson({})).toEqual(E.left("missing field firstName in {}"))
+    expect(parsePerson({ firstName: 0 })).toEqual(
+      E.left("the value 0 doesn't satisfy the refinement")
+    )
+    expect(parsePerson({ firstName: "Mike", lastName: "Arnaldi" })).toEqual(
+      E.right({ firstName: "Mike", lastName: "Arnaldi" })
+    )
+    expect(parsePerson({ firstName: "Mike", lastName: "Arnaldi" })).toEqual(
+      E.right({ firstName: "Mike", lastName: "Arnaldi" })
+    )
+  })
+  it("guardPerson", () => {
+    expect(guardPerson({ firstName: "Mike", lastName: "Arnaldi" })).toEqual(true)
+    expect(guardPerson({ lastName: "Arnaldi" })).toEqual(false)
+  })
 })
