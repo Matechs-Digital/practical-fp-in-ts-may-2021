@@ -16,7 +16,7 @@ describe("IO", () => {
       IO.chain((n) =>
         pipe(
           IO.access(({ y }: { y: string }) => y),
-          IO.chain((s) => IO.fail(`${s}${n}`))
+          IO.chain((s) => IO.failWith(() => `${s}${n}`))
         )
       ),
       IO.run({

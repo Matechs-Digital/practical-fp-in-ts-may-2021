@@ -1,5 +1,5 @@
 import * as E from "@effect-ts/core/Either"
-import { hole, identity } from "@effect-ts/core/Function"
+import { hole, identity, pipe } from "@effect-ts/core/Function"
 
 /**
  * Graduation:
@@ -208,7 +208,12 @@ export function succeedWith<A>(f: () => A): IO<unknown, never, A> {
 /**
  * Implement the constructor `failWith`
  */
-export declare function failWith<E>(f: () => E): IO<unknown, E, never>
+export function failWith<E>(f: () => E): IO<unknown, E, never> {
+  return pipe(
+    unit,
+    chain(() => fail(f()))
+  )
+}
 
 /**
  * Exercise:
