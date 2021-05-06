@@ -7,6 +7,7 @@
  */
 
 import * as E from "@effect-ts/core/Either"
+import type { Refinement } from "@effect-ts/system/Function"
 import { flow, identity, pipe } from "@effect-ts/system/Function"
 import { matchTag } from "@effect-ts/system/Utils"
 
@@ -158,7 +159,15 @@ export function guard<I, A>(self: Schema<I, A>): Guard<A> {
   )
 }
 
-// RECORD
+// Refinement
+export declare function refine<I, A, B extends A>(
+  self: Schema<I, A>,
+  refinement: Refinement<A, B>
+): Schema<I, B>
+
+export const string2 = refine(unknown, (u): u is string => typeof u === "string")
+
+export const number2 = refine(unknown, (u): u is number => typeof u === "number")
 
 /**
  * Exercise:

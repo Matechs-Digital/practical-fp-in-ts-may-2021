@@ -91,8 +91,9 @@ export class Stringify<A> {
   constructor(readonly op: Expr<number>, readonly _A: (a: string) => A) {}
 }
 
-export const concat = (op2: Expr<string>) => (op1: Expr<string>): Expr<string> =>
-  new Concat(op1, op2, identity)
+export function concat(op2: Expr<string>) {
+  return (op1: Expr<string>): Expr<string> => new Concat(op1, op2, identity)
+}
 
 export function stringify(op: Expr<number>): Expr<string> {
   return new Stringify(op, identity)
