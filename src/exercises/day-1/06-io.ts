@@ -1,6 +1,5 @@
 import * as E from "@effect-ts/core/Either"
 import { hole, identity } from "@effect-ts/core/Function"
-import { pipe } from "@effect-ts/system/Function"
 
 /**
  * Graduation:
@@ -26,7 +25,11 @@ import { pipe } from "@effect-ts/system/Function"
  * - Fail => represents failure
  * - Access => represents evironment access
  */
-export type IO<R, E, A> = Succeed<R, E, A> | Fail<R, E, A> | Access<R, E, A>
+export type IO<R, E, A> =
+  | Succeed<R, E, A>
+  | Fail<R, E, A>
+  | Access<R, E, A>
+  | Chain<R, E, A>
 
 /**
  * Write tests to assert that everythig works as expected while doing the exercises.
@@ -141,7 +144,12 @@ export type EOf = [XX] extends [IO<any, infer E, any>] ? E : never // should be 
  */
 export class Chain<R, E, A> {
   readonly _tag = "Chain"
+  constructor(
+    readonly use: <X>(f: <T>(self: IO<R, E, T>, f: (a: T) => IO<R, E, A>) => X) => X
+  ) {}
 }
+
+// RECORD
 
 /**
  * Exercise:
@@ -149,9 +157,11 @@ export class Chain<R, E, A> {
  * Produces an effect that describe the operation of running `self`, taking it's result and
  * feed it into `chainFn` to produce a new operation
  */
-export declare function chain<A, R1, E1, A1>(
+export function chain<A, R1, E1, A1>(
   chainFn: (a: A) => IO<R1, E1, A1>
-): <R, E>(self: IO<R, E, A>) => IO<R & R1, E | E1, A1>
+): <R, E>(self: IO<R, E, A>) => IO<R & R1, E | E1, A1> {
+  return (self) => new Chain((f) => f(self, chainFn))
+}
 
 /**
  * First small program, should be typed as:
@@ -160,10 +170,10 @@ export declare function chain<A, R1, E1, A1>(
  *     n: number;
  * }, "positive", `got ${number}`>
  */
-export const simpleProgram = pipe(
-  access(({ n }: { n: number }) => n),
-  chain((n) => (n > 0 ? fail("positive" as const) : succeed(`got ${n}` as const)))
-)
+//export const simpleProgram = pipe(
+//  access(({ n }: { n: number }) => n),
+//  chain((n) => (n > 0 ? fail("positive" as const) : succeed(`got ${n}` as const)))
+//)
 
 /**
  * Implement the map function in terms of chain & succeed
