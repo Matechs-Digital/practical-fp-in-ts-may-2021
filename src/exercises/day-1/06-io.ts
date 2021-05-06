@@ -1,5 +1,5 @@
 import * as E from "@effect-ts/core/Either"
-import { hole, identity, pipe } from "@effect-ts/core/Function"
+import { identity, pipe } from "@effect-ts/core/Function"
 
 /**
  * Graduation:
@@ -29,42 +29,11 @@ export type IO<R, E, A> =
   | Succeed<R, E, A>
   | Fail<R, E, A>
   | Access<R, E, A>
-  | Chain<R, E, A>
+  | Fold<R, E, A>
 
 /**
  * Write tests to assert that everythig works as expected while doing the exercises.
  */
-
-/**
- * Write a recursive interpreter for IO
- */
-export function run<R>(r: R): <E, A>(self: IO<R, E, A>) => E.Either<E, A> {
-  return (self) => {
-    switch (self._tag) {
-      case "Succeed": {
-        return E.right(self.value)
-      }
-      case "Fail": {
-        return E.left(self.error)
-      }
-      case "Access": {
-        return E.right(self.env(r))
-      }
-      case "Chain": {
-        return self.use((fa, afb) => {
-          const result = run(r)(fa)
-          if (E.isLeft(result)) {
-            return result
-          }
-          return run(r)(afb(result.right))
-        })
-      }
-      default: {
-        return hole()
-      }
-    }
-  }
-}
 
 /**
  * Exercise:
@@ -151,10 +120,17 @@ export type EOf = [XX] extends [IO<any, infer E, any>] ? E : never // should be 
  *
  * We want to be able to execute sequences of operations, create a primitive for that
  */
-export class Chain<R, E, A> {
-  readonly _tag = "Chain"
+export class Fold<R, E, A> {
+  readonly _tag = "Fold"
+
   constructor(
-    readonly use: <X>(f: <T>(self: IO<R, E, T>, f: (a: T) => IO<R, E, A>) => X) => X
+    readonly use: <X>(
+      f: <TE, TS>(_: {
+        readonly fx: IO<R, TE, TS>
+        readonly onError: (e: TE) => IO<R, E, A>
+        readonly onSuccess: (a: TS) => IO<R, E, A>
+      }) => X
+    ) => X
   ) {}
 }
 
@@ -169,7 +145,14 @@ export class Chain<R, E, A> {
 export function chain<A, R1, E1, A1>(
   chainFn: (a: A) => IO<R1, E1, A1>
 ): <R, E>(self: IO<R, E, A>) => IO<R & R1, E | E1, A1> {
-  return (self) => new Chain((f) => f(self, chainFn))
+  return (self) =>
+    new Fold((f) =>
+      f({
+        fx: self,
+        onError: fail,
+        onSuccess: chainFn
+      })
+    )
 }
 
 /**
@@ -218,21 +201,21 @@ export function failWith<E>(f: () => E): IO<unknown, E, never> {
 /**
  * Exercise:
  *
- * We want to be able to catch errors in operations, and recover
- */
-export class Catch<R, E, A> {
-  readonly _tag = "Catch"
-}
-
-/**
- * Exercise:
- *
  * Produces an effect that describe the operation of running `self`, taking it's error in case
  * of failures and feed it into `recoverFn` to produce a new operation
  */
-export declare function catchAll<E, R1, E1, A1>(
+export function catchAll<E, R1, E1, A1>(
   recoverFn: (e: E) => IO<R1, E1, A1>
-): <R, A>(self: IO<R, E, A>) => IO<R & R1, E1, A | A1>
+): <R, A>(self: IO<R, E, A>) => IO<R & R1, E1, A | A1> {
+  return (self) =>
+    new Fold((f) =>
+      f({
+        fx: self,
+        onSuccess: succeed,
+        onError: recoverFn
+      })
+    )
+}
 
 /**
  * Exercise:
@@ -248,15 +231,6 @@ export declare function bracket<A, RU, EU, AU, RF, EF, AF>(
   use: (a: A) => IO<RU, EU, AU>,
   finalize: (a: A, exit: E.Either<EU, AU>) => IO<RF, EF, AF>
 ): <R, E>(self: IO<R, E, A>) => IO<R & RU & RF, E | EU | EF, AU>
-
-/**
- * Exercise:
- *
- * We want to be able to catch errors in operations, and recover
- */
-export class Fold<R, E, A> {
-  readonly _tag = "Fold"
-}
 
 /**
  * Exercise:
@@ -292,3 +266,28 @@ export declare function provideSome<R, R0>(
  *
  * Describe how to implement recursive procedures in a stack safe manner
  */
+
+export function run<R>(r: R): <E, A>(self: IO<R, E, A>) => E.Either<E, A> {
+  return (self) => {
+    switch (self._tag) {
+      case "Succeed": {
+        return E.right(self.value)
+      }
+      case "Fail": {
+        return E.left(self.error)
+      }
+      case "Access": {
+        return E.right(self.env(r))
+      }
+      case "Fold": {
+        return self.use(({ fx, onError, onSuccess }) => {
+          const result = run(r)(fx)
+
+          return run(r)(
+            E.isLeft(result) ? onError(result.left) : onSuccess(result.right)
+          )
+        })
+      }
+    }
+  }
+}
