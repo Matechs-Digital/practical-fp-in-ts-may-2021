@@ -201,7 +201,9 @@ export const unit: IO<unknown, never, void> = succeed(void 0)
 /**
  * Implement the constructor `succeedWith`
  */
-export declare function succeedWith<A>(f: () => A): IO<unknown, never, A>
+export function succeedWith<A>(f: () => A): IO<unknown, never, A> {
+  return map(f)(unit)
+}
 
 /**
  * Implement the constructor `failWith`

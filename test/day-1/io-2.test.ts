@@ -4,7 +4,10 @@ import { pipe } from "@effect-ts/system/Function"
 
 describe("IO", () => {
   it("succeed", () => {
-    const res = pipe(IO.succeed(1), IO.run({}))
+    const res = pipe(
+      IO.succeedWith(() => 1),
+      IO.run({})
+    )
     expect(res).toEqual(E.right(1))
   })
   it("chain operations", () => {
