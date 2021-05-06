@@ -1,4 +1,5 @@
-import type * as E from "@effect-ts/core/Either"
+import * as E from "@effect-ts/core/Either"
+import { hole, identity } from "@effect-ts/core/Function"
 import { pipe } from "@effect-ts/system/Function"
 
 /**
@@ -25,7 +26,7 @@ import { pipe } from "@effect-ts/system/Function"
  * - Fail => represents failure
  * - Access => represents evironment access
  */
-export type IO<R, E, A> = Succeed<R, E, A> | Fail<R, E, A> | Access<R, E, A>
+export type IO<R, E, A> = Succeed<R, E, A>
 
 /**
  * Write tests to assert that everythig works as expected while doing the exercises.
@@ -34,7 +35,18 @@ export type IO<R, E, A> = Succeed<R, E, A> | Fail<R, E, A> | Access<R, E, A>
 /**
  * Write a recursive interpreter for IO
  */
-export declare function run<R>(r: R): <E, A>(self: IO<R, E, A>) => E.Either<E, A>
+export function run<R>(r: R): <E, A>(self: IO<R, E, A>) => E.Either<E, A> {
+  return (self) => {
+    switch (self._tag) {
+      case "Succeed": {
+        return E.right(self.value)
+      }
+      default: {
+        return hole()
+      }
+    }
+  }
+}
 
 /**
  * Exercise:
@@ -42,8 +54,14 @@ export declare function run<R>(r: R): <E, A>(self: IO<R, E, A>) => E.Either<E, A
  * - Never fail (E => never)
  * - Doesn't require env (R => unknown)
  */
-export declare class Succeed<R, E, A> {
+export class Succeed<R, E, A> {
   readonly _tag = "Succeed"
+
+  constructor(
+    readonly value: A,
+    readonly _E: (_: never) => E,
+    readonly _R: (_: R) => unknown
+  ) {}
 }
 
 /**
@@ -51,7 +69,9 @@ export declare class Succeed<R, E, A> {
  *
  * An effect that always succeeds with a value A
  */
-export declare function succeed<A>(value: A): IO<unknown, never, A>
+export function succeed<A>(value: A): IO<unknown, never, A> {
+  return new Succeed(value, identity, identity)
+}
 
 /**
  * Exercise:
