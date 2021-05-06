@@ -104,6 +104,11 @@ export interface IntBrand {
   readonly IntBrand: unique symbol
 }
 
+export interface Newtype<URI, T> {
+  _URI: URI
+  _T: T
+}
+
 export type Int = number & IntBrand
 
 export const numberInt = refine(number, (n): n is Int => Number.isInteger(n))
