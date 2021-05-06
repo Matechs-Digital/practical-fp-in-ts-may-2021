@@ -25,8 +25,6 @@ import { matchTag } from "@effect-ts/system/Utils"
  * 3) uknown values
  */
 export type Schema<I, A> =
-  | SchemaString<I, A>
-  | SchemaNumber<I, A>
   | SchemaUnknown<I, A>
   | SchemaCompose<I, A>
   | SchemaNumberString<I, A>
@@ -38,24 +36,6 @@ abstract class SchemaSyntax<I, A> {
     compose(that)(this)
 }
 
-export class SchemaString<I, A> extends SchemaSyntax<I, A> {
-  readonly _tag = "SchemaString"
-  constructor(readonly _A: (_: string) => A, readonly _I: (_: I) => unknown) {
-    super()
-  }
-}
-
-export const string: Schema<unknown, string> = new SchemaString(identity, identity)
-
-export class SchemaNumber<I, A> extends SchemaSyntax<I, A> {
-  readonly _tag = "SchemaNumber"
-  constructor(readonly _A: (_: number) => A, readonly _I: (_: I) => unknown) {
-    super()
-  }
-}
-
-export const number: Schema<unknown, number> = new SchemaNumber(identity, identity)
-
 export class SchemaUnknown<I, A> extends SchemaSyntax<I, A> {
   readonly _tag = "SchemaUnknown"
   constructor(readonly _A: (_: unknown) => A, readonly _I: (_: I) => unknown) {
@@ -64,6 +44,33 @@ export class SchemaUnknown<I, A> extends SchemaSyntax<I, A> {
 }
 
 export const unknown: Schema<unknown, unknown> = new SchemaUnknown(identity, identity)
+
+// Refinement
+export function refine<I, A, B extends A>(
+  self: Schema<I, A>,
+  refinement: Refinement<A, B>
+): Schema<I, B> {
+  return new SchemaRefinement((go) => go(self, refinement, identity))
+}
+
+export class SchemaRefinement<I, A> extends SchemaSyntax<I, A> {
+  readonly _tag = "SchemaRefinement"
+  constructor(
+    readonly use: <X>(
+      go: <T0, T extends T0>(
+        self: Schema<I, T0>,
+        ref: Refinement<T0, T>,
+        _A: (_: T) => A
+      ) => X
+    ) => X
+  ) {
+    super()
+  }
+}
+
+export const string = refine(unknown, (u): u is string => typeof u === "string")
+
+export const number = refine(unknown, (u): u is number => typeof u === "number")
 
 export class SchemaCompose<I, A> extends SchemaSyntax<I, A> {
   readonly _tag = "SchemaCompose"
@@ -93,6 +100,14 @@ export const stringNumber: Schema<string, number> = new SchemaNumberString(
 
 export const unknownStringNumber = string[">>>"](stringNumber)
 
+export interface IntBrand {
+  readonly IntBrand: unique symbol
+}
+
+export type Int = number & IntBrand
+
+export const numberInt = refine(number, (n): n is Int => Number.isInteger(n))
+
 /**
  * Exercise:
  *
@@ -104,18 +119,6 @@ export interface Parser<I, A> {
 
 export function parse<I, A>(self: Schema<I, A>): Parser<I, A> {
   switch (self._tag) {
-    case "SchemaNumber": {
-      return (u: I) =>
-        typeof u === "number"
-          ? E.right(self._A(u))
-          : E.left(`was expecting a number but got ${JSON.stringify(u)}`)
-    }
-    case "SchemaString": {
-      return (u: I) =>
-        typeof u === "string"
-          ? E.right(self._A(u))
-          : E.left(`was expecting a string but got ${JSON.stringify(u)}`)
-    }
     case "SchemaNumberString": {
       return (u: I) => {
         const i = self._I(u)
@@ -147,21 +150,6 @@ export function parse<I, A>(self: Schema<I, A>): Parser<I, A> {
   }
 }
 
-export class SchemaRefinement<I, A> extends SchemaSyntax<I, A> {
-  readonly _tag = "SchemaRefinement"
-  constructor(
-    readonly use: <X>(
-      go: <T0, T extends T0>(
-        self: Schema<I, T0>,
-        ref: Refinement<T0, T>,
-        _A: (_: T) => A
-      ) => X
-    ) => X
-  ) {
-    super()
-  }
-}
-
 /**
  * Exercise:
  *
@@ -175,12 +163,8 @@ export function guard<I, A>(self: Schema<I, A>): Guard<A> {
   return pipe(
     self,
     matchTag({
-      SchemaNumber: () => (_: unknown): _ is A =>
-        typeof _ === "number" ? true : false,
       SchemaNumberString: () => (_: unknown): _ is A =>
         typeof _ === "number" ? true : false,
-      SchemaString: () => (_: unknown): _ is A =>
-        typeof _ === "string" ? true : false,
       SchemaUnknown: () => (_: unknown): _ is A => true,
       SchemaCompose: ({ use }) => use((_, that) => guard(that)),
       SchemaRefinement: ({ use }) =>
@@ -192,18 +176,6 @@ export function guard<I, A>(self: Schema<I, A>): Guard<A> {
     })
   )
 }
-
-// Refinement
-export function refine<I, A, B extends A>(
-  self: Schema<I, A>,
-  refinement: Refinement<A, B>
-): Schema<I, B> {
-  return new SchemaRefinement((go) => go(self, refinement, identity))
-}
-
-export const string2 = refine(unknown, (u): u is string => typeof u === "string")
-
-export const number2 = refine(unknown, (u): u is number => typeof u === "number")
 
 /**
  * Exercise:
