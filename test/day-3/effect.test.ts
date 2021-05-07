@@ -349,4 +349,16 @@ describe("Effect", () => {
 
     expect(Ex.untraced(res)).toEqual(Ex.die("error"))
   })
+
+  it("T.tryPromise fail", async () => {
+    const res = await pipe(
+      T.tryCatchPromise(
+        () => Promise.reject("error"),
+        (reason) => reason as string
+      ),
+      T.runPromiseExit
+    )
+
+    expect(Ex.untraced(res)).toEqual(Ex.fail("error"))
+  })
 })
