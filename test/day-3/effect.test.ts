@@ -3,6 +3,7 @@ import { pipe } from "@effect-ts/core"
 import * as T from "@effect-ts/core/Effect"
 import * as Cause from "@effect-ts/core/Effect/Cause"
 import * as Ex from "@effect-ts/core/Effect/Exit"
+import * as E from "@effect-ts/core/Either"
 import * as O from "@effect-ts/core/Option"
 
 describe("Effect", () => {
@@ -228,9 +229,10 @@ describe("Effect", () => {
       T.tap((n) => (n === 1 ? T.fail(new TooBig()) : T.unit)),
       T.catch("_tag", "InvalidRandom", () => T.succeed(0.95)),
       T.provideAll<App.RandGen>({ rand: T.succeed(0.1) }),
-      T.runPromiseExit
+      T.either,
+      T.runPromise
     )
 
-    expect(Ex.untraced(res)).toEqual(Ex.succeed(0.95))
+    expect(res).toEqual(E.right(0.95))
   })
 })
