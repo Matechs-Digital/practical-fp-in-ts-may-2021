@@ -114,4 +114,29 @@ describe("Effect", () => {
 
     expect(res).toEqual(Ex.succeed("ok"))
   })
+  it("foldM success", async () => {
+    const res = await pipe(
+      T.succeed(1),
+      T.foldM(
+        (e) => T.fail(e),
+        (v) => T.succeed(v)
+      ),
+      T.runPromise
+    )
+
+    expect(res).toEqual(1)
+  })
+
+  it("foldM failure", async () => {
+    const res = await pipe(
+      T.fail("error"),
+      T.foldM(
+        (e) => T.fail(e),
+        (v) => T.succeed(v)
+      ),
+      T.runPromiseExit
+    )
+
+    expect(Ex.untraced(res)).toEqual(Ex.fail("error"))
+  })
 })
