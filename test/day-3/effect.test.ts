@@ -361,4 +361,15 @@ describe("Effect", () => {
 
     expect(Ex.untraced(res)).toEqual(Ex.fail("error"))
   })
+
+  it("T.effectAsync", async () => {
+    const res = await pipe(
+      T.effectAsync<unknown, never, number>((cb) => {
+        setTimeout(() => cb(T.succeed(1)), 100)
+      }),
+      T.runPromiseExit
+    )
+
+    expect(Ex.untraced(res)).toEqual(Ex.succeed(1))
+  })
 })
