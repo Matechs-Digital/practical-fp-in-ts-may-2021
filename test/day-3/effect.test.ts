@@ -5,6 +5,7 @@ import * as T from "@effect-ts/core/Effect"
 import * as Cause from "@effect-ts/core/Effect/Cause"
 import * as Ex from "@effect-ts/core/Effect/Exit"
 import * as F from "@effect-ts/core/Effect/Fiber"
+import * as M from "@effect-ts/core/Effect/Managed"
 import * as E from "@effect-ts/core/Either"
 import * as O from "@effect-ts/core/Option"
 
@@ -419,5 +420,33 @@ describe("Effect", () => {
     )
 
     expect(Ex.map_(res, Chunk.toArray)).toEqual(Ex.succeed([2, 3, 4]))
+  })
+
+  it("M.makeExit", async () => {
+    const acq = jest.fn()
+    const cleanup = jest.fn()
+
+    const resource = pipe(
+      T.succeedWith(() => {
+        acq()
+        return {
+          connection: "ok"
+        }
+      }),
+      M.makeExit((_) =>
+        T.succeedWith(() => {
+          cleanup(_)
+        })
+      )
+    )
+
+    const effect = pipe(
+      resource,
+      M.use((_) => T.succeed(_.connection))
+    )
+
+    const res = await T.runPromiseExit(effect)
+
+    expect(res).toEqual(Ex.succeed("ok"))
   })
 })
