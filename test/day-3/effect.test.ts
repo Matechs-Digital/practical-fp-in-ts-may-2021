@@ -59,4 +59,34 @@ describe("Effect", () => {
     )
     expect(res).toEqual(2)
   })
+
+  it("random program should succeed", async () => {
+    const res = await pipe(
+      App.randomGteHalf,
+      T.provideAll<App.RandGen>({ rand: T.succeed(0.7) }),
+      T.runPromiseExit
+    )
+
+    expect(res).toEqual(Ex.succeed(0.7))
+  })
+
+  it("random program should fail", async () => {
+    const res = await pipe(
+      App.randomGteHalf,
+      T.provideAll<App.RandGen>({ rand: T.succeed(0.4) }),
+      T.runPromiseExit
+    )
+
+    expect(Ex.untraced(res)).toEqual(Ex.fail("Number less than 0.5"))
+  })
+
+  it("randomGteHalf catchAll", async () => {
+    const res = await pipe(
+      App.randomGteHalfOr1,
+      T.provideAll<App.RandGen>({ rand: T.succeed(0.3) }),
+      T.runPromise
+    )
+
+    expect(res).toEqual(1)
+  })
 })

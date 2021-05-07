@@ -103,6 +103,11 @@ export const randomGteHalf = pipe(
   T.chain((n) => (n < 0.5 ? T.fail("Number less than 0.5") : T.succeed(n)))
 )
 
+export const randomGteHalfOr1 = pipe(
+  randomGteHalf,
+  T.catchAll(() => T.succeed(1))
+)
+
 /**
  * Exercise:
  *
