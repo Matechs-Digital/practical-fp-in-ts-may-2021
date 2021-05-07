@@ -24,7 +24,7 @@ export const one = T.succeed(1)
  *
  * Test the output of the following program
  */
-export const error = T.fail("error")
+export const error = T.fail("error" as const)
 
 /**
  * Exercise:
