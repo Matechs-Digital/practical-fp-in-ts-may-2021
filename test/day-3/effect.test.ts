@@ -226,11 +226,11 @@ describe("Effect", () => {
     const res = await pipe(
       App.randomGteHalf,
       T.tap((n) => (n === 1 ? T.fail(new TooBig()) : T.unit)),
-      T.catchTag("InvalidRandom", () => T.succeed(0.95)),
+      T.catch("_tag", "InvalidRandom", () => T.succeed(0.95)),
       T.provideAll<App.RandGen>({ rand: T.succeed(0.1) }),
       T.runPromiseExit
     )
 
-    expect(Ex.untraced(res)).toEqual(Ex.fail(new App.InvalidRandom({ number: 0.1 })))
+    expect(Ex.untraced(res)).toEqual(Ex.succeed(0.95))
   })
 })
