@@ -110,7 +110,7 @@ export const randomGteHalf: T.Effect<RandGen, InvalidRandom, number> = pipe(
 
 export const randomGteHalfOr1 = pipe(
   randomGteHalf,
-  T.catchTag("InvalidRandom", ({ number }) => T.succeed(number + 0.5))
+  T.catchAll(({ number }) => T.succeed(number + 0.5))
 )
 
 /**
