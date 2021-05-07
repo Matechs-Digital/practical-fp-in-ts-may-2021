@@ -331,4 +331,22 @@ describe("Effect", () => {
     })
       ["|>"](T.provideService(App.RandGen)({ _tag: "RandGen", rand: T.succeed(0.6) }))
       ["|>"](T.runPromise))
+
+  it("T.promise", async () => {
+    const res = await pipe(
+      T.promise(() => Promise.resolve(1)),
+      T.runPromiseExit
+    )
+
+    expect(Ex.untraced(res)).toEqual(Ex.succeed(1))
+  })
+
+  it("T.promise fail", async () => {
+    const res = await pipe(
+      T.promise(() => Promise.reject("error")),
+      T.runPromiseExit
+    )
+
+    expect(Ex.untraced(res)).toEqual(Ex.die("error"))
+  })
 })
