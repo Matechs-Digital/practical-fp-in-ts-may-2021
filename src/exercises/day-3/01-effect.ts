@@ -7,22 +7,6 @@ import * as T from "@effect-ts/core/Effect"
  */
 
 /**
- * The data-type parameters:
- *
- * 1) A
- * 2) E
- * 3) R
- */
-
-/**
- * The type aliases
- */
-
-/**
- * Constructors
- */
-
-/**
  * Running Effects:
  *
  * In order to run an effect one has to use one of the T.run* functions, we will begin using T.runPromiseExit that we will use in tests
