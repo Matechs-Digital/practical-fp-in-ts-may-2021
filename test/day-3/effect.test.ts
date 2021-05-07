@@ -282,4 +282,13 @@ describe("Effect", () => {
     expect(use).toHaveBeenCalledTimes(1)
     expect(rel).toHaveBeenCalledTimes(1)
   })
+
+  it("random numbers", async () => {
+    pipe(
+      T.do,
+      T.bind("x", () => App.randomGteHalf),
+      T.bind("y", () => App.randomGteHalf),
+      T.map(({ x, y }) => x + y)
+    )
+  })
 })
