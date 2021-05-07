@@ -286,9 +286,29 @@ describe("Effect", () => {
   it("random numbers", async () => {
     pipe(
       T.do,
-      T.bind("x", () => App.randomGteHalf),
+      T.bind("x", () =>
+        T.updateService_(App.randomGteHalf, App.RandGen, (old) => ({
+          ...old,
+          rand: T.succeed(0)
+        }))
+      ),
       T.bind("y", () => App.randomGteHalf),
       T.map(({ x, y }) => x + y)
     )
+  })
+
+  it("gen", async () => {
+    T.gen(function* (_) {
+      const { rand } = yield* _(App.RandGen)
+
+      const x = yield* _(rand)
+      const y = yield* _(rand)
+
+      for (const __ of [0, 1, 2, 3]) {
+        yield* _(App.randomGteHalf)
+      }
+
+      return x + y
+    })
   })
 })
