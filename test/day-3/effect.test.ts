@@ -311,4 +311,24 @@ describe("Effect", () => {
       return x + y
     })
   })
+
+  it("gen test", () =>
+    T.gen(function* (_) {
+      const { rand } = yield* _(App.RandGen)
+
+      const x = yield* _(rand)
+      const y = yield* _(rand)
+
+      for (const __ of [0, 1, 2, 3]) {
+        yield* _(App.randomGteHalf)
+      }
+
+      yield* _(T.either(App.randomGteHalf))
+
+      expect(x + y).toEqual(1.2)
+
+      return x + y
+    })
+      ["|>"](T.provideService(App.RandGen)({ _tag: "RandGen", rand: T.succeed(0.6) }))
+      ["|>"](T.runPromise))
 })
