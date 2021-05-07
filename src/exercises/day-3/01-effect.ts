@@ -103,14 +103,14 @@ export class InvalidRandom extends Tagged("InvalidRandom")<{
   readonly number: number
 }> {}
 
-export const randomGteHalf = pipe(
+export const randomGteHalf: T.Effect<RandGen, InvalidRandom, number> = pipe(
   rand,
   T.chain((n) => (n < 0.5 ? T.fail(new InvalidRandom({ number: n })) : T.succeed(n)))
 )
 
 export const randomGteHalfOr1 = pipe(
   randomGteHalf,
-  T.catchAll((_) => T.succeed(1))
+  T.catchTag("InvalidRandom", ({ number }) => T.succeed(number + 0.5))
 )
 
 /**
