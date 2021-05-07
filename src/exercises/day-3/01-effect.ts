@@ -1,4 +1,5 @@
 import * as T from "@effect-ts/core/Effect"
+import { pipe } from "@effect-ts/core/Function"
 
 /**
  * Theory:
@@ -83,10 +84,15 @@ export const unit = T.unit
 /**
  * Exercise:
  *
- * Write a program that geerates a random number between 0 and 1
+ * Write a program that generates a random number between 0 and 1
  * using Math.random and that fail with an InvalidNumber error in
  * case the number is < 0.5 and succeeds with the number otherwise
  */
+
+export const randomGteHalf = pipe(
+  T.succeedWith(() => Math.random()),
+  T.chain((n) => (n < 0.5 ? T.fail("Number less than 0.5") : T.succeed(n)))
+)
 
 /**
  * Exercise:

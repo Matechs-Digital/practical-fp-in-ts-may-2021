@@ -50,4 +50,13 @@ describe("Effect", () => {
 
     expect(res).toEqual(4)
   })
+
+  it("chain", async () => {
+    const res = await pipe(
+      App.one,
+      T.chain((n) => T.succeed(n + 1)),
+      T.runPromise
+    )
+    expect(res).toEqual(2)
+  })
 })
