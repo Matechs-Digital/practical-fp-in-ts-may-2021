@@ -1,7 +1,6 @@
 import * as App from "@app/exercises/day-3/01-effect"
 import { pipe } from "@effect-ts/core"
 import * as T from "@effect-ts/core/Effect"
-import { pretty } from "@effect-ts/core/Effect/Cause"
 import * as Ex from "@effect-ts/core/Effect/Exit"
 
 describe("Effect", () => {
@@ -23,8 +22,6 @@ describe("Effect", () => {
     const res = await T.runPromiseExit(App.die)
 
     Ex.assertsFailure(res)
-
-    console.log(pretty(res.cause))
 
     expect(Ex.untraced(res)).toEqual(Ex.die("error"))
   })
@@ -87,6 +84,6 @@ describe("Effect", () => {
       T.runPromise
     )
 
-    expect(res).toEqual(1)
+    expect(res).toEqual(0.8)
   })
 })
