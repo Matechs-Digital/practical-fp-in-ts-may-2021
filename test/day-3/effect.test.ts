@@ -77,7 +77,7 @@ describe("Effect", () => {
       T.runPromiseExit
     )
 
-    expect(Ex.untraced(res)).toEqual(Ex.fail("Number less than 0.5"))
+    expect(Ex.untraced(res)).toEqual(Ex.fail(new App.InvalidRandom({ number: 0.4 })))
   })
 
   it("randomGteHalf catchAll", async () => {

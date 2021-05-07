@@ -1,3 +1,4 @@
+import { Tagged } from "@effect-ts/core/Case"
 import * as T from "@effect-ts/core/Effect"
 import { pipe } from "@effect-ts/core/Function"
 
@@ -98,14 +99,18 @@ export interface RandGen {
 
 export const rand = T.accessM((_: RandGen) => _.rand)
 
+export class InvalidRandom extends Tagged("InvalidRandom")<{
+  readonly number: number
+}> {}
+
 export const randomGteHalf = pipe(
   rand,
-  T.chain((n) => (n < 0.5 ? T.fail("Number less than 0.5") : T.succeed(n)))
+  T.chain((n) => (n < 0.5 ? T.fail(new InvalidRandom({ number: n })) : T.succeed(n)))
 )
 
 export const randomGteHalfOr1 = pipe(
   randomGteHalf,
-  T.catchAll(() => T.succeed(1))
+  T.catchAll((_) => T.succeed(1))
 )
 
 /**
