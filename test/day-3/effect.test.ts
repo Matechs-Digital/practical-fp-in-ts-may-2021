@@ -1,8 +1,10 @@
 import * as App from "@app/exercises/day-3/01-effect"
 import { pipe } from "@effect-ts/core"
+import * as Chunk from "@effect-ts/core/Collections/Immutable/Chunk"
 import * as T from "@effect-ts/core/Effect"
 import * as Cause from "@effect-ts/core/Effect/Cause"
 import * as Ex from "@effect-ts/core/Effect/Exit"
+import * as F from "@effect-ts/core/Effect/Fiber"
 import * as E from "@effect-ts/core/Either"
 import * as O from "@effect-ts/core/Option"
 
@@ -371,5 +373,51 @@ describe("Effect", () => {
     )
 
     expect(Ex.untraced(res)).toEqual(Ex.succeed(1))
+  })
+
+  it("T.effectAsyncInterrupt", async () => {
+    const res = await pipe(
+      T.effectAsyncInterrupt<unknown, never, number>((cb) => {
+        const timer = setTimeout(() => cb(T.succeed(1)), 100)
+
+        return T.succeedWith(() => {
+          clearTimeout(timer)
+        })
+      }),
+      T.runPromiseExit
+    )
+
+    expect(Ex.untraced(res)).toEqual(Ex.succeed(1))
+  })
+
+  it("T.effectAsyncInterrupt interruption", () =>
+    T.gen(function* (_) {
+      const f = jest.fn()
+
+      const fiber = yield* _(
+        T.fork(
+          T.effectAsyncInterrupt<unknown, never, number>((cb) => {
+            const timer = setTimeout(() => cb(T.succeed(1)), 100)
+
+            return T.succeedWith(() => {
+              f()
+              clearTimeout(timer)
+            })
+          })
+        )
+      )
+
+      yield* _(T.sleep(10))
+      yield* _(F.interrupt(fiber))
+    })["|>"](T.runPromise))
+
+  it("T.forEach", async () => {
+    const res = await pipe(
+      [1, 2, 3],
+      T.forEachParN(2, (n) => T.delay(100)(T.succeed(n + 1))),
+      T.runPromiseExit
+    )
+
+    expect(Ex.map_(res, Chunk.toArray)).toEqual(Ex.succeed([2, 3, 4]))
   })
 })
