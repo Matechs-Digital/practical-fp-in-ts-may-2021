@@ -5,7 +5,8 @@
     "plugins": [
       { "transform": "@effect-ts/tracing-plugin" },
       { "transform": "typescript-transform-paths" }
-    ]
+    ],
+    "module": "CommonJS"
   },
   "include": ["src/**/*.ts"]
 }
