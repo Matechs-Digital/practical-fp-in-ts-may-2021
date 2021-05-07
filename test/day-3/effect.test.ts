@@ -150,4 +150,21 @@ describe("Effect", () => {
 
     expect(Ex.untraced(res)).toEqual(Ex.fail("error"))
   })
+
+  it("tapError", async () => {
+    const f = jest.fn()
+    const res = await pipe(
+      App.randomGteHalf,
+      T.provideAll<App.RandGen>({ rand: T.succeed(0.4) }),
+      T.tapError((e) =>
+        T.succeedWith(() => {
+          f(e)
+        })
+      ),
+      T.runPromiseExit
+    )
+
+    expect(Ex.untraced(res)).toEqual(Ex.fail(new App.InvalidRandom({ number: 0.4 })))
+    expect(f).toHaveBeenCalledTimes(1)
+  })
 })
