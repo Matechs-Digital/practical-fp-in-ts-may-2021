@@ -88,9 +88,18 @@ export const unit = T.unit
  * using Math.random and that fail with an InvalidNumber error in
  * case the number is < 0.5 and succeeds with the number otherwise
  */
+export const RandGenLive: RandGen = {
+  rand: T.succeedWith(() => Math.random())
+}
+
+export interface RandGen {
+  readonly rand: T.UIO<number>
+}
+
+export const rand = T.accessM((_: RandGen) => _.rand)
 
 export const randomGteHalf = pipe(
-  T.succeedWith(() => Math.random()),
+  rand,
   T.chain((n) => (n < 0.5 ? T.fail("Number less than 0.5") : T.succeed(n)))
 )
 
@@ -103,7 +112,7 @@ export const randomGteHalf = pipe(
 /**
  * Exercise:
  *
- * Test the validRand program, you will need to move the dependency on
+ * Test the randomGteHalf program, you will need to move the dependency on
  * Math.random to be a requirement (R) using T.accessM and provide the
  * dependency (mocked) in the test
  */
