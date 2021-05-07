@@ -139,4 +139,15 @@ describe("Effect", () => {
 
     expect(Ex.untraced(res)).toEqual(Ex.fail("error"))
   })
+
+  it("result", async () => {
+    const res = await pipe(
+      T.fail("error"),
+      T.result,
+      T.chain((_) => T.done(_)),
+      T.runPromiseExit
+    )
+
+    expect(Ex.untraced(res)).toEqual(Ex.fail("error"))
+  })
 })
