@@ -1,7 +1,9 @@
 import * as App from "@app/exercises/day-3/01-effect"
 import { pipe } from "@effect-ts/core"
 import * as T from "@effect-ts/core/Effect"
+import * as Cause from "@effect-ts/core/Effect/Cause"
 import * as Ex from "@effect-ts/core/Effect/Exit"
+import * as O from "@effect-ts/core/Option"
 
 describe("Effect", () => {
   it("should succeed", async () => {
@@ -85,5 +87,31 @@ describe("Effect", () => {
     )
 
     expect(res).toEqual(0.8)
+  })
+
+  it("T.catchAllCause", async () => {
+    const res = await pipe(
+      T.die("error"),
+      T.catchAllCause((_) =>
+        pipe(
+          _,
+          Cause.find(
+            O.partial((miss) => (x): string => {
+              if (Cause.equals(x, Cause.die("error"))) {
+                return "ok"
+              }
+              return miss()
+            })
+          ),
+          O.fold(
+            () => T.halt(_),
+            (_) => T.succeed(_)
+          )
+        )
+      ),
+      T.runPromiseExit
+    )
+
+    expect(res).toEqual(Ex.succeed("ok"))
   })
 })
