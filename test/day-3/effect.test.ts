@@ -235,4 +235,51 @@ describe("Effect", () => {
 
     expect(res).toEqual(E.right(0.95))
   })
+
+  it("bracket", async () => {
+    const use = jest.fn()
+    const rel = jest.fn()
+
+    await pipe(
+      T.succeed(0),
+      T.bracket(
+        (n) =>
+          T.succeedWith(() => {
+            use(n)
+          }),
+        (n) =>
+          T.succeedWith(() => {
+            rel(n)
+          })
+      ),
+      T.runPromiseExit
+    )
+
+    expect(use).toHaveBeenCalledTimes(1)
+    expect(rel).toHaveBeenCalledTimes(1)
+  })
+
+  it("bracket fail", async () => {
+    const use = jest.fn()
+    const rel = jest.fn()
+
+    await pipe(
+      T.succeed(0),
+      T.bracket(
+        (n) =>
+          T.failWith(() => {
+            use(n)
+            return "error"
+          }),
+        (n) =>
+          T.succeedWith(() => {
+            rel(n)
+          })
+      ),
+      T.runPromiseExit
+    )
+
+    expect(use).toHaveBeenCalledTimes(1)
+    expect(rel).toHaveBeenCalledTimes(1)
+  })
 })
