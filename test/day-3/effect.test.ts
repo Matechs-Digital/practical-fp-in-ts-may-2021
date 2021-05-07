@@ -167,4 +167,70 @@ describe("Effect", () => {
     expect(Ex.untraced(res)).toEqual(Ex.fail(new App.InvalidRandom({ number: 0.4 })))
     expect(f).toHaveBeenCalledTimes(1)
   })
+
+  it("tapBoth fail", async () => {
+    const onFail = jest.fn()
+    const onSuccess = jest.fn()
+    const res = await pipe(
+      App.randomGteHalf,
+      T.tapBoth(
+        (e) =>
+          T.succeedWith(() => {
+            onFail(e)
+          }),
+        (n) =>
+          T.succeedWith(() => {
+            onSuccess(n)
+            return n
+          })
+      ),
+      T.provideAll<App.RandGen>({ rand: T.succeed(0.4) }),
+      T.runPromiseExit
+    )
+
+    expect(Ex.untraced(res)).toEqual(Ex.fail(new App.InvalidRandom({ number: 0.4 })))
+    expect(onFail).toHaveBeenCalledTimes(1)
+    expect(onSuccess).not.toBeCalled()
+  })
+
+  it("tapBoth succeed", async () => {
+    const onFail = jest.fn()
+    const onSuccess = jest.fn()
+    const res = await pipe(
+      App.randomGteHalf,
+      T.provideAll<App.RandGen>({ rand: T.succeed(0.6) }),
+      T.tapBoth(
+        (e) =>
+          T.succeedWith(() => {
+            onFail(e)
+          }),
+        (n) =>
+          T.succeedWith(() => {
+            onSuccess(n)
+            return n
+          })
+      ),
+      T.runPromiseExit
+    )
+
+    expect(Ex.untraced(res)).toEqual(Ex.succeed(0.6))
+    expect(onFail).not.toBeCalled()
+    expect(onSuccess).toHaveBeenCalledTimes(1)
+  })
+
+  it("catchTag", async () => {
+    class TooBig {
+      readonly _tag = "TooBig"
+    }
+
+    const res = await pipe(
+      App.randomGteHalf,
+      T.tap((n) => (n === 1 ? T.fail(new TooBig()) : T.unit)),
+      T.catchTag("InvalidRandom", () => T.succeed(0.95)),
+      T.provideAll<App.RandGen>({ rand: T.succeed(0.1) }),
+      T.runPromiseExit
+    )
+
+    expect(Ex.untraced(res)).toEqual(Ex.fail(new App.InvalidRandom({ number: 0.1 })))
+  })
 })
