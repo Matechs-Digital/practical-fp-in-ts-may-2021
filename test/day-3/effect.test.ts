@@ -63,7 +63,7 @@ describe("Effect", () => {
   it("random program should succeed", async () => {
     const res = await pipe(
       App.randomGteHalf,
-      T.provideAll<App.RandGen>({ rand: T.succeed(0.7) }),
+      T.provideService(App.RandGen)({ _tag: "RandGen", rand: T.succeed(0.7) }),
       T.runPromiseExit
     )
 
@@ -73,7 +73,7 @@ describe("Effect", () => {
   it("random program should fail", async () => {
     const res = await pipe(
       App.randomGteHalf,
-      T.provideAll<App.RandGen>({ rand: T.succeed(0.4) }),
+      T.provideService(App.RandGen)({ _tag: "RandGen", rand: T.succeed(0.4) }),
       T.runPromiseExit
     )
 
@@ -83,7 +83,7 @@ describe("Effect", () => {
   it("randomGteHalf catchAll", async () => {
     const res = await pipe(
       App.randomGteHalfOr1,
-      T.provideAll<App.RandGen>({ rand: T.succeed(0.3) }),
+      T.provideService(App.RandGen)({ _tag: "RandGen", rand: T.succeed(0.3) }),
       T.runPromise
     )
 
@@ -161,7 +161,7 @@ describe("Effect", () => {
           f(e)
         })
       ),
-      T.provideAll<App.RandGen>({ rand: T.succeed(0.4) }),
+      T.provideService(App.RandGen)({ _tag: "RandGen", rand: T.succeed(0.4) }),
       T.runPromiseExit
     )
 
@@ -185,7 +185,7 @@ describe("Effect", () => {
             return n
           })
       ),
-      T.provideAll<App.RandGen>({ rand: T.succeed(0.4) }),
+      T.provideService(App.RandGen)({ _tag: "RandGen", rand: T.succeed(0.4) }),
       T.runPromiseExit
     )
 
@@ -199,7 +199,7 @@ describe("Effect", () => {
     const onSuccess = jest.fn()
     const res = await pipe(
       App.randomGteHalf,
-      T.provideAll<App.RandGen>({ rand: T.succeed(0.6) }),
+      T.provideService(App.RandGen)({ _tag: "RandGen", rand: T.succeed(0.6) }),
       T.tapBoth(
         (e) =>
           T.succeedWith(() => {
@@ -228,7 +228,7 @@ describe("Effect", () => {
       App.randomGteHalf,
       T.tap((n) => (n === 1 ? T.fail(new TooBig()) : T.unit)),
       T.catch("_tag", "InvalidRandom", () => T.succeed(0.95)),
-      T.provideAll<App.RandGen>({ rand: T.succeed(0.1) }),
+      T.provideService(App.RandGen)({ _tag: "RandGen", rand: T.succeed(0.1) }),
       T.either,
       T.runPromise
     )

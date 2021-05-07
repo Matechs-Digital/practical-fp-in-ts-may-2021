@@ -1,6 +1,8 @@
 import { Tagged } from "@effect-ts/core/Case"
 import * as T from "@effect-ts/core/Effect"
 import { pipe } from "@effect-ts/core/Function"
+import type { Has } from "@effect-ts/core/Has"
+import { tag } from "@effect-ts/core/Has"
 
 /**
  * Theory:
@@ -90,20 +92,24 @@ export const unit = T.unit
  * case the number is < 0.5 and succeeds with the number otherwise
  */
 export const RandGenLive: RandGen = {
+  _tag: "RandGen",
   rand: T.succeedWith(() => Math.random())
 }
 
 export interface RandGen {
+  readonly _tag: "RandGen"
   readonly rand: T.UIO<number>
 }
 
-export const rand = T.accessM((_: RandGen) => _.rand)
+export const RandGen = tag<RandGen>()
+
+export const { rand } = T.deriveLifted(RandGen)([], ["rand"], [])
 
 export class InvalidRandom extends Tagged("InvalidRandom")<{
   readonly number: number
 }> {}
 
-export const randomGteHalf: T.Effect<RandGen, InvalidRandom, number> = pipe(
+export const randomGteHalf: T.Effect<Has<RandGen>, InvalidRandom, number> = pipe(
   rand,
   T.chain((n) => (n < 0.5 ? T.fail(new InvalidRandom({ number: n })) : T.succeed(n)))
 )
