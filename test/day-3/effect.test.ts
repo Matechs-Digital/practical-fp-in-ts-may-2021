@@ -155,12 +155,12 @@ describe("Effect", () => {
     const f = jest.fn()
     const res = await pipe(
       App.randomGteHalf,
-      T.provideAll<App.RandGen>({ rand: T.succeed(0.4) }),
       T.tapError((e) =>
         T.succeedWith(() => {
           f(e)
         })
       ),
+      T.provideAll<App.RandGen>({ rand: T.succeed(0.4) }),
       T.runPromiseExit
     )
 
