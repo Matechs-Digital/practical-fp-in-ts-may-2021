@@ -323,10 +323,10 @@
   resolved "https://registry.yarnpkg.com/@effect-ts/jest/-/jest-0.25.1.tgz#dc34f89098ccd0f5f2ea78662094b08ed2c823eb"
   integrity sha512-wQF7SMXNpkBecV9FsKrovAy0/paEpzQ+k966uOPM6hpANUmpWgYyb4Cb1LfTx2B0sbGK4bN213lAgq+KWbyrxQ==
 
-"@effect-ts/node@^0.23.1":
-  version "0.23.1"
-  resolved "https://registry.yarnpkg.com/@effect-ts/node/-/node-0.23.1.tgz#ff596e98285fa352c06c7fbb8dd344ff1300ccb1"
-  integrity sha512-1caR0tpwDfGUD+5aeJe3ixJWz+ilyDE1vbqtS8fygsCPCtvnI78F7MvHEN0VI6U3eB2hPzrrEro7OUIvRuwzkQ==
+"@effect-ts/node@^0.23.2":
+  version "0.23.2"
+  resolved "https://registry.yarnpkg.com/@effect-ts/node/-/node-0.23.2.tgz#5451b82595ad1b37aa36500a817b2df8cce3e557"
+  integrity sha512-GmKUN/Jb3VEa3KILbID1rOCpprbuyo5q2OyAI4aolB5gX/R1XeKiFi34Id6u95sKPi2TZxnaRvpH9qId5Rk01Q==
 
 "@effect-ts/system@^0.34.8":
   version "0.34.8"
