@@ -9,7 +9,7 @@
     "build": "ttsc -p tsconfig.build.json"
   },
   "devDependencies": {
-    "@effect-ts/jest": "^0.25.1",
+    "@effect-ts/jest": "^0.25.2",
     "@effect-ts/tracing-plugin": "^0.10.2",
     "@types/jest": "^26.0.23",
     "@types/node": "^15.0.2",
